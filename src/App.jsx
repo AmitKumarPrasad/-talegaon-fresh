@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { categories, products } from './data/products';
 
-const WHATSAPP_NUMBER = '919999999999'; // Replace with the Talegaon Fresh business number before launch.
+const WHATSAPP_NUMBER = '918788543135'; // Replace with the Talegaon Fresh business number before launch.
 
 function whatsappUrl(product = null) {
   const message = product
