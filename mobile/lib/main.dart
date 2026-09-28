@@ -164,7 +164,27 @@ class _LoginPageState extends State<LoginPage> {
 class CustomerAddress {
   const CustomerAddress({required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = ''});
   final String label, fullAddress, city, pincode, landmark;
+
   String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'fullAddress': fullAddress,
+    'city': city,
+    'pincode': pincode,
+    'landmark': landmark,
+  };
+
+  static CustomerAddress? fromJson(dynamic value) {
+    if (value is! Map) return null;
+    final label = value['label'];
+    final fullAddress = value['fullAddress'];
+    final city = value['city'];
+    final pincode = value['pincode'];
+    final landmark = value['landmark'];
+    if (label is! String || fullAddress is! String || city is! String || pincode is! String) return null;
+    return CustomerAddress(label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '');
+  }
 }
 
 class OrderRecord {
@@ -264,10 +284,12 @@ class _AppShellState extends State<AppShell> {
     _loadProducts();
     _loadCart();
     _loadOrders();
+    _loadAddresses();
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
   String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
+  String get _addressesStorageKey => 'talegaon_fresh_addresses_${widget.session.phone}';
 
   Future<void> _loadCart() async {
     final prefs = await SharedPreferences.getInstance();
@@ -300,6 +322,25 @@ class _AppShellState extends State<AppShell> {
     } catch (_) {
       await prefs.remove(_cartStorageKey);
     }
+  }
+
+  Future<void> _loadAddresses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_addressesStorageKey);
+    if (raw == null || !mounted) return;
+    try {
+      final items = jsonDecode(raw);
+      if (items is! List) return;
+      final restored = items.map(CustomerAddress.fromJson).whereType<CustomerAddress>().toList();
+      if (mounted) setState(() => addresses..clear()..addAll(restored));
+    } catch (_) {
+      await prefs.remove(_addressesStorageKey);
+    }
+  }
+
+  Future<void> _persistAddresses() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_addressesStorageKey, jsonEncode(addresses.map((address) => address.toJson()).toList()));
   }
 
   Future<void> _loadOrders() async {
@@ -347,6 +388,8 @@ class _AppShellState extends State<AppShell> {
   Future<void> _signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cartStorageKey);
+    await prefs.remove(_ordersStorageKey);
+    await prefs.remove(_addressesStorageKey);
     if (!mounted) return;
     setState(cart.clear);
     widget.onSignOut?.call();
@@ -425,7 +468,7 @@ class _AppShellState extends State<AppShell> {
       ProfilePage(
         session: widget.session,
         addresses: addresses,
-        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () => setState(() {})))),
+        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onSignOut: _signOut,
       ),
     ];
