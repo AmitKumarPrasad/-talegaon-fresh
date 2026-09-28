@@ -485,11 +485,15 @@ class _AppShellState extends State<AppShell> {
 
   int get count => cart.fold(0, (sum, x) => sum + x.quantity);
 
+  void _openProduct(Product product) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: product, onAdd: add)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
-      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
+      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct),
+      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct),
       CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
       OrdersPage(orders: orders),
       ProfilePage(
@@ -521,12 +525,13 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd});
+  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
+  final ValueChanged<Product> onOpenProduct;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -588,7 +593,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct), childCount: products.length > 4 ? 4 : products.length),
         ),
       ),
     ],
@@ -596,12 +601,13 @@ class HomePage extends StatelessWidget {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd});
+  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
+  final ValueChanged<Product> onOpenProduct;
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -683,7 +689,7 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd), childCount: filtered.length),
+              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct), childCount: filtered.length),
             ),
           ),
       ],
@@ -711,15 +717,19 @@ class ErrorCard extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product, required this.onAdd});
+  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen});
   final Product product;
   final ValueChanged<Product> onAdd;
+  final ValueChanged<Product> onOpen;
 
   @override
   Widget build(BuildContext context) => Card(
     elevation: 0, color: Colors.white,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-    child: Padding(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => onOpen(product),
+      child: Padding(
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Container(
@@ -733,6 +743,67 @@ class ProductCard extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onAdd(product), icon: const Icon(Icons.add, size: 18), label: const Text('Add'))),
       ]),
+    ),
+  );
+}
+
+class ProductDetailsPage extends StatefulWidget {
+  const ProductDetailsPage({super.key, required this.product, required this.onAdd});
+
+  final Product product;
+  final ValueChanged<Product> onAdd;
+
+  @override
+  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
+}
+
+class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  int quantity = 1;
+
+  double get total => widget.product.price * quantity;
+
+  void _addToCart() {
+    for (var i = 0; i < quantity; i++) {
+      widget.onAdd(widget.product);
+    }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Product Details')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Container(
+          height: 260,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF6EA),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Icon(widget.product.icon, size: 120, color: const Color(0xFF2E9B55)),
+        ),
+        const SizedBox(height: 22),
+        Text(widget.product.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text('₹' + widget.product.price.toStringAsFixed(0) + ' / ' + widget.product.unit, style: const TextStyle(color: Color(0xFF168447), fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 18),
+        const Text('Freshly sourced and available for today\'s delivery.', style: TextStyle(color: Colors.black54, fontSize: 16)),
+        const SizedBox(height: 24),
+        const Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            IconButton.filledTonal(onPressed: quantity > 1 ? () => setState(() => quantity--) : null, icon: const Icon(Icons.remove)),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 22), child: Text(quantity.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
+            IconButton.filledTonal(onPressed: () => setState(() => quantity++), icon: const Icon(Icons.add)),
+            const Spacer(),
+            Text('₹' + total.toStringAsFixed(0), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        FilledButton.icon(onPressed: _addToCart, icon: const Icon(Icons.shopping_cart_outlined), label: Text('Add ' + quantity.toString() + ' to Cart')),
+      ],
     ),
   );
 }
