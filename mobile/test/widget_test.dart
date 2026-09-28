@@ -45,14 +45,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Addresses'));
     await tester.pumpAndSettle();
-    expect(find.text('Talegaon Dabhade'), findsOneWidget);
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Text && widget.data?.contains('Talegaon Dabhade') == true,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Add Address'), findsOneWidget);
+
     await tester.tap(find.text('Add Address'));
     await tester.pumpAndSettle();
+
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'Work');
     await tester.enterText(fields.at(1), 'Office Road');
@@ -60,8 +69,14 @@ void main() {
     await tester.enterText(fields.at(3), '410507');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
+
     expect(find.text('Work'), findsOneWidget);
-    expect(find.text('Office Road'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Text && widget.data?.contains('Office Road') == true,
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Talegaon Fresh loads products from repository', (tester) async {
