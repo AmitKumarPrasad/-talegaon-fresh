@@ -29,7 +29,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(NavigationDestination).at(1));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ProductCard, 'Tomato'));
+    final productCard = find.widgetWithText(ProductCard, 'Tomato');
+    await tester.ensureVisible(productCard);
+    await tester.tap(productCard);
     await tester.pumpAndSettle();
 
     expect(find.text('Product Details'), findsOneWidget);
