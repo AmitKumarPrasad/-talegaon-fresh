@@ -119,11 +119,8 @@ void main() {
     await tester.tap(find.text('Products'));
     await tester.pumpAndSettle();
     final addButton = find.widgetWithText(FilledButton, 'Add').first;
-    await tester.scrollUntilVisible(
-      addButton,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    await tester.pumpAndSettle();
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
