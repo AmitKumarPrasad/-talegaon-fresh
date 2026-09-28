@@ -342,6 +342,7 @@ class _AppShellState extends State<AppShell> {
     const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
   ];
   final orders = <OrderRecord>[];
+  final favorites = <String>{};
 
   @override
   void initState() {
@@ -350,11 +351,13 @@ class _AppShellState extends State<AppShell> {
     _loadCart();
     _loadOrders();
     _loadAddresses();
+    _loadFavorites();
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
   String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
   String get _addressesStorageKey => 'talegaon_fresh_addresses_${widget.session.phone}';
+  String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
 
   Future<void> _loadCart() async {
     final prefs = await SharedPreferences.getInstance();
@@ -400,12 +403,32 @@ class _AppShellState extends State<AppShell> {
       if (mounted) setState(() => addresses..clear()..addAll(restored));
     } catch (_) {
       await prefs.remove(_addressesStorageKey);
+    await prefs.remove(_favoritesStorageKey);
     }
   }
 
   Future<void> _persistAddresses() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_addressesStorageKey, jsonEncode(addresses.map((address) => address.toJson()).toList()));
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_favoritesStorageKey);
+    if (raw == null || !mounted) return;
+    try {
+      final items = jsonDecode(raw);
+      if (items is! List) return;
+      final restored = items.whereType<String>().where((name) => name.isNotEmpty).toSet();
+      if (mounted) setState(() => favorites..clear()..addAll(restored));
+    } catch (_) {
+      await prefs.remove(_favoritesStorageKey);
+    }
+  }
+
+  Future<void> _persistFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_favoritesStorageKey, jsonEncode(favorites.toList()));
   }
 
   Future<void> _loadOrders() async {
@@ -510,6 +533,17 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  void toggleFavorite(Product p) {
+    setState(() {
+      if (favorites.contains(p.name)) {
+        favorites.remove(p.name);
+      } else {
+        favorites.add(p.name);
+      }
+    });
+    _persistFavorites();
+  }
+
   void add(Product p) {
     setState(() {
       final matches = cart.where((x) => x.product.name == p.name);
@@ -531,14 +565,15 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct),
-      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct),
+      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
+      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
       OrdersPage(orders: orders),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () { setState(() {}); _persistAddresses(); }))),
+        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
         onSignOut: _signOut,
       ),
     ];
@@ -632,7 +667,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite), childCount: products.length > 4 ? 4 : products.length),
         ),
       ),
     ],
@@ -647,6 +682,8 @@ class ProductsPage extends StatefulWidget {
   final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpenProduct;
+  final Set<String> favorites;
+  final ValueChanged<Product> onToggleFavorite;
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -728,7 +765,7 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct), childCount: filtered.length),
+              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(filtered[i].name), onToggleFavorite: widget.onToggleFavorite), childCount: filtered.length),
             ),
           ),
       ],
@@ -756,10 +793,12 @@ class ErrorCard extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen});
+  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite});
   final Product product;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpen;
+  final bool isFavorite;
+  final ValueChanged<Product> onToggleFavorite;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -768,8 +807,10 @@ class ProductCard extends StatelessWidget {
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: () => onOpen(product),
-      child: Padding(
-      padding: const EdgeInsets.all(12),
+      child: Stack(
+        children: [
+          Padding(
+          padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Container(
           width: double.infinity,
@@ -782,7 +823,18 @@ class ProductCard extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onAdd(product), icon: const Icon(Icons.add, size: 18), label: const Text('Add'))),
       ]),
-    ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton.filledTonal(
+              tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+              onPressed: () => onToggleFavorite(product),
+              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -1125,11 +1177,47 @@ class TrackingPage extends StatelessWidget {
   }
 }
 
+class FavoritesPage extends StatelessWidget {
+  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite});
+
+  final List<Product> products;
+  final ValueChanged<Product> onAdd;
+  final ValueChanged<Product> onToggleFavorite;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('My Favorites')),
+    body: products.isEmpty
+        ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.favorite_border, size: 64, color: Colors.black26),
+            SizedBox(height: 12),
+            Text('No favorites yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            Text('Tap the heart on a product to save it here.'),
+          ]))
+        : GridView.builder(
+            padding: const EdgeInsets.all(20),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return ProductCard(
+                product: product,
+                onAdd: onAdd,
+                onOpen: (value) => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: value, onAdd: onAdd))),
+                isFavorite: true,
+                onToggleFavorite: onToggleFavorite,
+              );
+            },
+          ),
+  );
+}
+
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, this.onSignOut});
+  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, this.onSignOut});
   final CustomerSession session;
   final List<CustomerAddress> addresses;
   final VoidCallback onManageAddresses;
+  final VoidCallback onManageFavorites;
   final VoidCallback? onSignOut;
 
   @override
@@ -1144,6 +1232,15 @@ class ProfilePage extends StatelessWidget {
       const SizedBox(height: 4),
       Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
       const SizedBox(height: 22),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.favorite_border),
+          title: const Text('My Favorites'),
+          subtitle: const Text('View your saved products'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onManageFavorites,
+        ),
+      ),
       Card(
         child: ListTile(
           leading: const Icon(Icons.location_on_outlined),
