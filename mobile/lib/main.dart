@@ -291,8 +291,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
       const Card(child: ListTile(leading: Icon(Icons.location_on, color: Color(0xFF168447)), title: Text('Home'), subtitle: Text('Talegaon, Maharashtra - 410507'))),
       const SizedBox(height: 22),
       const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-      RadioListTile(value: 'UPI', groupValue: payment, onChanged: (v) => setState(() => payment = v!), title: const Text('UPI'), subtitle: const Text('Google Pay / PhonePe / Paytm')),
-      RadioListTile(value: 'COD', groupValue: payment, onChanged: (v) => setState(() => payment = v!), title: const Text('Cash on Delivery')),
+      Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          ChoiceChip(
+            label: const Text('UPI'),
+            selected: payment == 'UPI',
+            onSelected: (_) => setState(() => payment = 'UPI'),
+          ),
+          ChoiceChip(
+            label: const Text('Cash on Delivery'),
+            selected: payment == 'COD',
+            onSelected: (_) => setState(() => payment = 'COD'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Text(
+        payment == 'UPI' ? 'Google Pay / PhonePe / Paytm' : 'Pay in cash when your order is delivered.',
+        style: const TextStyle(color: Colors.black54),
+      ),
       SummaryRow(label: 'Total', value: widget.total, bold: true),
       const SizedBox(height: 18),
       FilledButton(onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OrderSuccessPage())), child: const Text('Place Order')),
