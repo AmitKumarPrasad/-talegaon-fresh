@@ -48,3 +48,7 @@ flutter pub get
 flutter run
 
 flutter test
+
+## Customer authentication
+
+The customer app starts with a mobile-number and OTP sign-in flow before opening the shopping experience. The current UI uses a deterministic demo OTP, `123456`, so the mobile flow can be tested without storing credentials or secrets. The authentication boundary can be connected to the production customer identity API in a later integration batch.
