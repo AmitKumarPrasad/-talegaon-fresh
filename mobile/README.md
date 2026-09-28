@@ -73,9 +73,21 @@ No OTPs, API keys, or JWT secrets are stored in the mobile application. The auth
 
 The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. The current implementation keeps the address book in local mobile storage. An injectable HTTP Address API repository is now defined for the production integration. It uses `GET/POST /customers/me/addresses` and `PUT/DELETE /customers/me/addresses/{id}` with the customer Bearer token. The UI remains on local storage until those backend endpoints are deployed and the server-side address identifier is available.\n\n## Customer order API\n\nAn injectable HTTP order repository is now defined for production integration. It supports `POST /customers/me/orders` for authenticated order creation and `GET /customers/me/orders` for customer order history, using the customer Bearer token. The current checkout and order history UI remains local until the backend endpoints are deployed and server-side order IDs are available. A `401 Unauthorized` response is mapped to `OrderApiException('AUTH_UNAUTHORIZED')` so the app can reuse the existing session-expiry handling when the repository is wired into the UI.
 
+
+## Customer cart API
+
+An injectable HTTP cart repository is now defined for production integration. It supports:
+- `GET /customers/me/cart` to load the authenticated customer's server-side cart
+- `PUT /customers/me/cart` to replace the server-side cart contents
+- `DELETE /customers/me/cart` to clear the server-side cart
+- Bearer JWT authentication on every request when a session token is available
+- `401 Unauthorized` mapped to `CartApiException('AUTH_UNAUTHORIZED')`
+
+The current checkout/cart UI remains local until the backend cart endpoints are deployed and server-side inventory/pricing rules are ready. The API boundary intentionally does not switch the UI to remote cart synchronization yet.
+
 ## Customer cart persistence
 
-The authenticated customer cart is persisted locally per mobile number, so cart items survive app restarts. Signing out clears that customer's local cart. This is local device persistence; production order/cart synchronization remains part of the planned backend integration.
+The authenticated customer cart is persisted locally per mobile number, so cart items survive app restarts. Signing out clears that customer's local cart. This remains the active UI storage until server-side cart synchronization is enabled.
 
 ## Product details
 
