@@ -26,6 +26,10 @@ class ApiProduct {
       );
 }
 
+class AuthenticationExpiredException implements Exception {
+  const AuthenticationExpiredException();
+}
+
 abstract class ProductRepository {
   Future<List<ApiProduct>> fetchProducts();
 }
@@ -58,6 +62,10 @@ class HttpProductRepository implements ProductRepository {
           'Authorization': 'Bearer $_token',
       },
     );
+
+    if (response.statusCode == 401) {
+      throw const AuthenticationExpiredException();
+    }
 
     if (response.statusCode != 200) {
       throw Exception('Product API returned HTTP ${response.statusCode}.');
