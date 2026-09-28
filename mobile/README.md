@@ -51,7 +51,23 @@ flutter test
 
 ## Customer authentication
 
-The customer app starts with a mobile-number and OTP sign-in flow before opening the shopping experience. The current UI uses a deterministic demo OTP, `123456`, so the mobile flow can be tested without storing credentials or secrets. The authentication boundary can be connected to the production customer identity API in a later integration batch.
+The customer app uses an injectable authentication repository for the mobile-number and OTP sign-in flow.
+
+- Demo mode remains the default for local/widget testing and uses OTP `123456`.
+- Remote mode uses `POST /auth/request-otp` and `POST /auth/verify-otp`.
+- Remote authentication expects a JSON response containing `token` and may return `phone` and `name`.
+- Configure the backend base URL with `AUTH_BASE_URL`.
+- Enable remote authentication with `AUTH_MODE=remote`.
+
+Example:
+
+```bash
+flutter run \
+  --dart-define=AUTH_MODE=remote \
+  --dart-define=AUTH_BASE_URL=https://your-api.example.com
+```
+
+No OTPs, API keys, or JWT secrets are stored in the mobile application. The deployed backend must implement the documented authentication endpoints before remote mode is enabled for production.
 
 ## Customer address management
 
