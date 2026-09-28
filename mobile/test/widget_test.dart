@@ -27,7 +27,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Talegaon Fresh'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
     expect(find.text('My Profile'), findsOneWidget);
+    expect(find.text('9876543210'), findsOneWidget);
   });
 
   testWidgets('Talegaon Fresh loads products from repository', (tester) async {
