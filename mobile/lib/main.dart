@@ -256,6 +256,7 @@ class _AppShellState extends State<AppShell> {
   final addresses = <CustomerAddress>[
     const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
   ];
+  final orders = <OrderRecord>[];
 
   @override
   void initState() {
@@ -331,7 +332,7 @@ class _AppShellState extends State<AppShell> {
     await prefs.setString(_cartStorageKey, jsonEncode(data));
   }
 
-  Future<void> _completeOrder(String payment, CustomerAddress address, double total) async {
+  Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
     final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
     final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now());
     setState(() {
@@ -340,6 +341,7 @@ class _AppShellState extends State<AppShell> {
     });
     await _persistCart();
     await _persistOrders();
+    return orderId;
   }
 
   Future<void> _signOut() async {
@@ -610,7 +612,7 @@ class CartPage extends StatelessWidget {
   final List<CartItem> cart;
   final VoidCallback onChanged;
   final List<CustomerAddress> addresses;
-  final Future<void> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final Future<String> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -742,8 +744,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       const SizedBox(height: 18),
       FilledButton(
         onPressed: widget.addresses.isEmpty ? null : () async {
-          final orderId = 'TF${DateTime.now().millisecondsSinceEpoch % 1000000}';
-          await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
+          final orderId = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
           if (!context.mounted) return;
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(orderId: orderId, total: widget.total)));
         },
