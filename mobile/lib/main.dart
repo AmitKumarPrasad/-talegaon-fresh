@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'product_api.dart';
+
 void main() => runApp(const TalegaonFreshApp());
 
 class Product {
@@ -9,14 +11,6 @@ class Product {
   final IconData icon;
 }
 
-const products = <Product>[
-  Product(name: 'Tomato', unit: '1 kg', price: 30, icon: Icons.circle),
-  Product(name: 'Potato', unit: '1 kg', price: 25, icon: Icons.circle_outlined),
-  Product(name: 'Onion', unit: '1 kg', price: 28, icon: Icons.spa),
-  Product(name: 'Carrot', unit: '500 g', price: 32, icon: Icons.eco),
-  Product(name: 'Capsicum', unit: '500 g', price: 40, icon: Icons.local_florist),
-  Product(name: 'Cabbage', unit: '1 pc', price: 25, icon: Icons.grass),
-];
 
 class CartItem {
   CartItem(this.product, this.quantity);
@@ -36,12 +30,16 @@ class TalegaonFreshApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF168447)),
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
-    home: const AppShell(),
+    home: AppShell(),
   );
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  AppShell({super.key, ProductRepository? repository})
+      : repository = repository ?? HttpProductRepository();
+
+  final ProductRepository repository;
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -49,6 +47,64 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int tab = 0;
   final cart = <CartItem>[];
+  List<Product> products = [];
+  bool loading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final apiProducts = await widget.repository.fetchProducts();
+      if (!mounted) return;
+      setState(() {
+        products = apiProducts
+            .where((p) => p.inStock)
+            .map((p) => Product(
+                  name: p.name,
+                  unit: p.unit,
+                  price: p.price,
+                  icon: _iconForProduct(p.name),
+                ))
+            .toList();
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        products = [];
+        loading = false;
+        error = 'Could not load today\'s products. Please try again.';
+      });
+    }
+  }
+
+  IconData _iconForProduct(String name) {
+    switch (name.toLowerCase()) {
+      case 'tomato':
+        return Icons.circle;
+      case 'potato':
+        return Icons.circle_outlined;
+      case 'onion':
+        return Icons.spa;
+      case 'carrot':
+        return Icons.eco;
+      case 'capsicum':
+        return Icons.local_florist;
+      case 'cabbage':
+        return Icons.grass;
+      default:
+        return Icons.local_grocery_store;
+    }
+  }
 
   void add(Product p) {
     setState(() {
@@ -66,8 +122,8 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(onAdd: add),
-      ProductsPage(onAdd: add),
+      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
+      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       CartPage(cart: cart, onChanged: () => setState(() {})),
       const OrdersPage(),
       const ProfilePage(),
@@ -94,7 +150,11 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onAdd});
+  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd});
+  final List<Product> products;
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
 
   @override
@@ -147,11 +207,17 @@ class HomePage extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
         sliver: SliverToBoxAdapter(child: Text("Today's Fresh Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
       ),
+      if (loading)
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
+      else if (error != null)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: error!, onRetry: onRetry)))
+      else if (products.isEmpty)
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products are available today.')))),
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd), childCount: 4),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd), childCount: products.length > 4 ? 4 : products.length),
         ),
       ),
     ],
@@ -159,7 +225,11 @@ class HomePage extends StatelessWidget {
 }
 
 class ProductsPage extends StatelessWidget {
-  const ProductsPage({super.key, required this.onAdd});
+  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd});
+  final List<Product> products;
+  final bool loading;
+  final String? error;
+  final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
 
   @override
@@ -172,14 +242,40 @@ class ProductsPage extends StatelessWidget {
           child: Wrap(spacing: 8, children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((x) => Chip(label: Text(x))).toList()),
         ),
       ),
-      SliverPadding(
+      if (loading)
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
+      else if (error != null)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: error!, onRetry: onRetry)))
+      else if (products.isEmpty)
+        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products are available today.'))))
+      else
+        SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
           delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd), childCount: products.length),
         ),
       ),
-    ],
+      ],
+  );
+}
+
+class ErrorCard extends StatelessWidget {
+  const ErrorCard({super.key, required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(children: [
+        const Icon(Icons.cloud_off, size: 40),
+        const SizedBox(height: 8),
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+      ]),
+    ),
   );
 }
 

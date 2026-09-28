@@ -26,6 +26,21 @@ WhatsApp remains an optional channel and is not required for the mobile app.
 
 No secrets are stored in the mobile application.
 
+## Product API configuration
+
+The app reads the customer catalogue from `GET /products`.
+
+By default it uses the deployed Talegaon Fresh backend:
+`https://talegaon-fresh-ai-backend.onrender.com`
+
+For another environment, pass the API base URL without a trailing slash:
+
+```bash
+flutter run --dart-define=API_BASE_URL=https://your-api.example.com
+```
+
+No API secrets are stored in the mobile application.
+
 ## Local development
 
 cd mobile
