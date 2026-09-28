@@ -4,6 +4,13 @@ import 'product_api.dart';
 
 void main() => runApp(const TalegaonFreshApp());
 
+class CustomerSession {
+  const CustomerSession({required this.phone, required this.name, this.token});
+  final String phone;
+  final String name;
+  final String? token;
+}
+
 class Product {
   const Product({required this.name, required this.unit, required this.price, required this.icon});
   final String name, unit;
@@ -12,14 +19,160 @@ class Product {
 }
 
 
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key, required this.onAuthenticated});
+  final ValueChanged<CustomerSession> onAuthenticated;
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final phone = TextEditingController();
+  final otp = TextEditingController();
+  bool otpSent = false;
+  bool loading = false;
+  String? error;
+
+  @override
+  void dispose() {
+    phone.dispose();
+    otp.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+
+    final normalizedPhone = phone.text.replaceAll(RegExp(r'\D'), '');
+    if (normalizedPhone.length != 10) {
+      setState(() {
+        loading = false;
+        error = 'Enter a valid 10-digit mobile number.';
+      });
+      return;
+    }
+
+    if (!otpSent) {
+      setState(() {
+        loading = false;
+        otpSent = true;
+      });
+      return;
+    }
+
+    if (otp.text.trim() != '123456') {
+      setState(() {
+        loading = false;
+        error = 'Invalid OTP. Use 123456 for the demo flow.';
+      });
+      return;
+    }
+
+    setState(() => loading = false);
+    widget.onAuthenticated(
+      CustomerSession(
+        phone: normalizedPhone,
+        name: 'Talegaon Customer',
+        token: 'demo-token',
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: Card(
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(Icons.eco, size: 52, color: Color(0xFF168447)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Welcome to Talegaon Fresh',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sign in with your mobile number to continue.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile number',
+                      prefixText: '+91 ',
+                    ),
+                  ),
+                  if (otpSent) ...[
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: otp,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'OTP',
+                        helperText: 'Demo OTP: 123456',
+                      ),
+                    ),
+                  ],
+                  if (error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      error!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: loading ? null : submit,
+                    child: Text(
+                      loading
+                          ? 'Please wait…'
+                          : (otpSent ? 'Verify & Continue' : 'Send OTP'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class CartItem {
   CartItem(this.product, this.quantity);
   final Product product;
   int quantity;
 }
 
-class TalegaonFreshApp extends StatelessWidget {
+class TalegaonFreshApp extends StatefulWidget {
   const TalegaonFreshApp({super.key});
+
+  @override
+  State<TalegaonFreshApp> createState() => _TalegaonFreshAppState();
+}
+
+class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
+  CustomerSession? session;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -30,15 +183,19 @@ class TalegaonFreshApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF168447)),
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
-    home: AppShell(),
+    home: session == null
+        ? LoginPage(onAuthenticated: (value) => setState(() => session = value))
+        : AppShell(session: session!, onSignOut: () => setState(() => session = null)),
   );
 }
 
 class AppShell extends StatefulWidget {
-  AppShell({super.key, ProductRepository? repository})
+  AppShell({super.key, ProductRepository? repository, required this.session, this.onSignOut})
       : repository = repository ?? HttpProductRepository();
 
   final ProductRepository repository;
+  final CustomerSession session;
+  final VoidCallback? onSignOut;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -126,7 +283,7 @@ class _AppShellState extends State<AppShell> {
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       CartPage(cart: cart, onChanged: () => setState(() {})),
       const OrdersPage(),
-      const ProfilePage(),
+      ProfilePage(session: widget.session, onSignOut: widget.onSignOut),
     ];
     return Scaffold(
       body: SafeArea(child: pages[tab]),
@@ -472,16 +629,22 @@ class TrackingPage extends StatelessWidget {
 }
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, required this.session, this.onSignOut});
+  final CustomerSession session;
+  final VoidCallback? onSignOut;
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(20), children: [
     const Text('My Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
     const SizedBox(height: 20),
     const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
     const SizedBox(height: 10),
-    const Center(child: Text('Customer', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+    Center(child: Text(session.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+    const SizedBox(height: 4),
+    Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
     const SizedBox(height: 22),
     ...['My Orders', 'My Addresses', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
       .map((x) => Card(child: ListTile(title: Text(x), trailing: const Icon(Icons.chevron_right)))),
+    const SizedBox(height: 10),
+    OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
   ]);
 }
