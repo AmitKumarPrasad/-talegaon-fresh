@@ -526,6 +526,10 @@ class _AppShellState extends State<AppShell> {
       });
     } catch (e) {
       if (!mounted) return;
+      if (e is ApiUnauthorizedException) {
+        widget.onSignOut?.call();
+        return;
+      }
       setState(() {
         products = [];
         loading = false;
