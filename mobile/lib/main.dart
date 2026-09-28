@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth_api.dart';
 import 'product_api.dart';
 
 void main() => runApp(const TalegaonFreshApp());
@@ -23,8 +24,9 @@ class Product {
 
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onAuthenticated});
+  const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository()});
   final ValueChanged<CustomerSession> onAuthenticated;
+  final AuthRepository authRepository;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -61,30 +63,37 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (!otpSent) {
+    try {
+      if (!otpSent) {
+        await widget.authRepository.requestOtp(normalizedPhone);
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          otpSent = true;
+        });
+        return;
+      }
+
+      final session = await widget.authRepository.verifyOtp(
+        normalizedPhone,
+        otp.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => loading = false);
+      widget.onAuthenticated(session);
+    } on AuthException catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
-        otpSent = true;
+        error = e.message;
       });
-      return;
-    }
-
-    if (otp.text.trim() != '123456') {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         loading = false;
-        error = 'Invalid OTP. Use 123456 for the demo flow.';
+        error = 'Authentication failed. Please try again.';
       });
-      return;
     }
-
-    setState(() => loading = false);
-    widget.onAuthenticated(
-      CustomerSession(
-        phone: normalizedPhone,
-        name: 'Talegaon Customer',
-        token: 'demo-token',
-      ),
-    );
   }
 
   @override
