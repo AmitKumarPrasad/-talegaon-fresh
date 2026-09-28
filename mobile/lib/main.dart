@@ -342,7 +342,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
 
 class AppShell extends StatefulWidget {
   AppShell({super.key, ProductRepository? repository, required this.session, this.onSignOut})
-      : repository = repository ?? HttpProductRepository();
+      : repository = repository ?? HttpProductRepository(token: session.token);
 
   final ProductRepository repository;
   final CustomerSession session;
