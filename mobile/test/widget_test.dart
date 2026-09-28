@@ -29,10 +29,18 @@ void main() {
     expect(find.text('Talegaon Fresh'), findsOneWidget);
     expect(find.text('My Profile'), findsOneWidget);
   });
+
   testWidgets('Talegaon Fresh loads products from repository', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: AppShell(repository: FakeProductRepository()),
+        home: AppShell(
+          repository: FakeProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Talegaon Customer',
+            token: 'test-token',
+          ),
+        ),
       ),
     );
     await tester.pumpAndSettle();
