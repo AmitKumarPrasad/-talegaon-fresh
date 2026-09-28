@@ -60,3 +60,7 @@ The authenticated customer can open **My Addresses** from Profile to add, edit, 
 ## Customer cart persistence
 
 The authenticated customer cart is persisted locally per mobile number, so cart items survive app restarts. Signing out clears that customer's local cart. This is local device persistence; production order/cart synchronization remains part of the planned backend integration.
+
+## Product details
+
+Customers can tap any product card to open a product details screen, review the unit price, choose a quantity, and add the selected quantity to the cart in one action.
