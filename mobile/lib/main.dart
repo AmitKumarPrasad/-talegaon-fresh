@@ -716,6 +716,8 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
     super.dispose();
   }
 
+  bool get validPincode => pincode.text.trim().length == 6 && int.tryParse(pincode.text.trim()) != null;
+
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
@@ -735,81 +737,7 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
           if (label.text.trim().isEmpty ||
               address.text.trim().isEmpty ||
               city.text.trim().isEmpty ||
-              !RegExp(r'^\\d{6}
-  const AddressBookPage({super.key, required this.addresses, required this.onChanged});
-  final List<CustomerAddress> addresses;
-  final VoidCallback onChanged;
-
-  @override
-  State<AddressBookPage> createState() => _AddressBookPageState();
-}
-
-class _AddressBookPageState extends State<AddressBookPage> {
-  Future<void> _editAddress({CustomerAddress? existing, int? index}) async {
-    final result = await showDialog<CustomerAddress>(
-      context: context,
-      builder: (_) => _AddressFormDialog(existing: existing),
-    );
-
-    if (!mounted || result == null) return;
-    setState(() {
-      if (index == null) {
-        widget.addresses.add(result);
-      } else {
-        widget.addresses[index] = result;
-      }
-    });
-    widget.onChanged();
-  }
-
-  Future<void> _deleteAddress(int index) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete address?'),
-        content: Text('Remove ${widget.addresses[index].label} from saved addresses?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    setState(() => widget.addresses.removeAt(index));
-    widget.onChanged();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('My Addresses')),
-    floatingActionButton: FloatingActionButton.extended(onPressed: () => _editAddress(), icon: const Icon(Icons.add), label: const Text('Add Address')),
-    body: widget.addresses.isEmpty
-        ? const Center(child: Text('No saved addresses yet.'))
-        : ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-            itemCount: widget.addresses.length,
-            itemBuilder: (context, index) {
-              final item = widget.addresses[index];
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.location_on_outlined),
-                  title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(item.landmark.isEmpty ? item.displayAddress : '${item.displayAddress}\n${item.landmark}'),
-                  isThreeLine: item.landmark.isNotEmpty,
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) => value == 'edit' ? _editAddress(existing: item, index: index) : _deleteAddress(index),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-  );
-}
-).hasMatch(pincode.text.trim())) {
+              !validPincode) {
             return;
           }
           Navigator.pop(
