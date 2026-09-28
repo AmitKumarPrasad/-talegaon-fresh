@@ -55,4 +55,21 @@ void main() {
 
     expect(await repository.fetchProducts(), isEmpty);
   });
+  test('product API exposes unauthorized responses as a typed error', () async {
+    final client = MockClient((request) async {
+      return http.Response('', 401);
+    });
+
+    final repository = HttpProductRepository(
+      client: client,
+      baseUrl: 'https://example.test',
+      token: 'expired-token',
+    );
+
+    expect(
+      repository.fetchProducts,
+      throwsA(isA<ApiUnauthorizedException>()),
+    );
+  });
+
 }
