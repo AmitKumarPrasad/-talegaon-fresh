@@ -302,14 +302,18 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   Future<void> _restoreSession() async {
     final prefs = await SharedPreferences.getInstance();
     final phone = prefs.getString('talegaon_fresh_session_phone');
-    if (!mounted || phone == null || phone.isEmpty) return;
-    setState(() => session = CustomerSession(phone: phone, name: prefs.getString('talegaon_fresh_session_name') ?? 'Talegaon Customer', token: 'demo-token'));
+    final token = prefs.getString('talegaon_fresh_session_token');
+    if (!mounted || phone == null || phone.isEmpty || token == null || token.isEmpty) return;
+    setState(() => session = CustomerSession(phone: phone, name: prefs.getString('talegaon_fresh_session_name') ?? 'Talegaon Customer', token: token));
   }
 
   Future<void> _handleAuthenticated(CustomerSession value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('talegaon_fresh_session_phone', value.phone);
     await prefs.setString('talegaon_fresh_session_name', value.name);
+    if (value.token != null && value.token!.isNotEmpty) {
+      await prefs.setString('talegaon_fresh_session_token', value.token!);
+    }
     if (mounted) setState(() => session = value);
   }
 
@@ -317,6 +321,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('talegaon_fresh_session_phone');
     await prefs.remove('talegaon_fresh_session_name');
+    await prefs.remove('talegaon_fresh_session_token');
     if (mounted) setState(() => session = null);
   }
 
