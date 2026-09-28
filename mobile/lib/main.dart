@@ -744,6 +744,7 @@ class ProductCard extends StatelessWidget {
         SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onAdd(product), icon: const Icon(Icons.add, size: 18), label: const Text('Add'))),
       ]),
     ),
+    ),
   );
 }
 
