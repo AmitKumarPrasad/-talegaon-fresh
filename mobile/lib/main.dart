@@ -676,7 +676,7 @@ class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced});
   final double total;
   final List<CustomerAddress> addresses;
-  final Future<void> Function() onOrderPlaced;
+  final Future<String> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
