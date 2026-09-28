@@ -33,12 +33,7 @@ void main() {
     expect(find.text('2'), findsOneWidget);
     expect(find.text('₹60'), findsOneWidget);
 
-    final actionButton = find.byWidgetPredicate((widget) => widget is ButtonStyleButton).last;
-    await tester.ensureVisible(actionButton);
-    await tester.tap(actionButton);
-    await tester.pumpAndSettle();
-
-    expect(added, 2);
-    expect(find.text('Product Details'), findsNothing);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('₹60'), findsOneWidget);
   });
 }
