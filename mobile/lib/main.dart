@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'product_api.dart';
 
@@ -221,6 +224,61 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _loadProducts();
+    _loadCart();
+  }
+
+  String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
+
+  Future<void> _loadCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cartStorageKey);
+    if (raw == null || !mounted) return;
+    try {
+      final items = jsonDecode(raw);
+      if (items is! List) return;
+      final restored = <CartItem>[];
+      for (final item in items) {
+        if (item is! Map) continue;
+        final name = item['name'];
+        final unit = item['unit'];
+        final price = item['price'];
+        final quantity = item['quantity'];
+        if (name is! String || unit is! String || price is! num || quantity is! num || quantity < 1) continue;
+        restored.add(CartItem(
+          Product(
+            name: name,
+            unit: unit,
+            price: price.toDouble(),
+            icon: _iconForProduct(name),
+          ),
+          quantity.toInt(),
+        ));
+      }
+      if (mounted) setState(() => cart
+        ..clear()
+        ..addAll(restored));
+    } catch (_) {
+      await prefs.remove(_cartStorageKey);
+    }
+  }
+
+  Future<void> _persistCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = cart.map((item) => <String, dynamic>{
+      'name': item.product.name,
+      'unit': item.product.unit,
+      'price': item.product.price,
+      'quantity': item.quantity,
+    }).toList();
+    await prefs.setString(_cartStorageKey, jsonEncode(data));
+  }
+
+  Future<void> _signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cartStorageKey);
+    if (!mounted) return;
+    setState(cart.clear);
+    widget.onSignOut?.call();
   }
 
   Future<void> _loadProducts() async {
@@ -281,6 +339,7 @@ class _AppShellState extends State<AppShell> {
         matches.first.quantity++;
       }
     });
+    _persistCart();
   }
 
   int get count => cart.fold(0, (sum, x) => sum + x.quantity);
@@ -290,13 +349,13 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
-      CartPage(cart: cart, onChanged: () => setState(() {})),
+      CartPage(cart: cart, onChanged: _persistCart),
       const OrdersPage(),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () => setState(() {})))),
-        onSignOut: widget.onSignOut,
+        onSignOut: _signOut,
       ),
     ];
     return Scaffold(
