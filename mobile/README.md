@@ -67,7 +67,7 @@ flutter run \
   --dart-define=AUTH_BASE_URL=https://your-api.example.com
 ```
 
-No OTPs, API keys, or JWT secrets are stored in the mobile application. The deployed backend must implement the documented authentication endpoints before remote mode is enabled for production.
+No OTPs, API keys, or JWT secrets are stored in the mobile application. The authenticated customer token is persisted locally for session restoration and removed on sign out. The deployed backend must implement the documented authentication endpoints before remote mode is enabled for production.
 
 ## Customer address management
 
