@@ -127,14 +127,14 @@ void main() {
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cart'));
+    await tester.tap(find.byType(NavigationDestination).at(2));
     await tester.pumpAndSettle();
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
 
     await tester.pumpWidget(buildShell());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cart'));
+    await tester.tap(find.byType(NavigationDestination).at(2));
     await tester.pumpAndSettle();
 
     expect(find.text('Tomato'), findsOneWidget);
