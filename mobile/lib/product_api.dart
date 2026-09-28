@@ -26,6 +26,10 @@ class ApiProduct {
       );
 }
 
+class ApiUnauthorizedException implements Exception {
+  const ApiUnauthorizedException();
+}
+
 abstract class ProductRepository {
   Future<List<ApiProduct>> fetchProducts();
 }
@@ -59,6 +63,9 @@ class HttpProductRepository implements ProductRepository {
       },
     );
 
+    if (response.statusCode == 401) {
+      throw const ApiUnauthorizedException();
+    }
     if (response.statusCode != 200) {
       throw Exception('Product API returned HTTP ${response.statusCode}.');
     }
