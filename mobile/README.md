@@ -88,3 +88,8 @@ Completed mobile orders retain an item snapshot locally. Customers can open an o
 ## Favorites
 
 Customers can save products to **My Favorites** from the product cards. Favorites are stored locally per customer mobile number, survive app restarts, and are cleared when that customer signs out.
+
+
+## Authentication expiry
+
+When an authenticated mobile API request returns HTTP 401, the app treats the customer session as expired, clears the persisted session and returns the customer to sign-in.
