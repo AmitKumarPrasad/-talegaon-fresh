@@ -28,6 +28,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Talegaon Fresh'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('talegaon_fresh_session_token'), 'demo-token');
+
+    await tester.pumpWidget(const TalegaonFreshApp());
+    await tester.pumpAndSettle();
+    expect(find.text('Home'), findsOneWidget);
+
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     expect(find.text('My Profile'), findsOneWidget);
