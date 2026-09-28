@@ -187,6 +187,39 @@ class CustomerAddress {
   }
 }
 
+class OrderLine {
+  const OrderLine({
+    required this.name,
+    required this.unit,
+    required this.price,
+    required this.quantity,
+  });
+
+  final String name;
+  final String unit;
+  final double price;
+  final int quantity;
+
+  double get total => price * quantity;
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'unit': unit,
+    'price': price,
+    'quantity': quantity,
+  };
+
+  static OrderLine? fromJson(dynamic value) {
+    if (value is! Map) return null;
+    final name = value['name'];
+    final unit = value['unit'];
+    final price = value['price'];
+    final quantity = value['quantity'];
+    if (name is! String || unit is! String || price is! num || quantity is! num || quantity < 1) return null;
+    return OrderLine(name: name, unit: unit, price: price.toDouble(), quantity: quantity.toInt());
+  }
+}
+
 class OrderRecord {
   const OrderRecord({
     required this.id,
@@ -194,6 +227,7 @@ class OrderRecord {
     required this.payment,
     required this.address,
     required this.createdAt,
+    this.items = const [],
   });
 
   final String id;
@@ -201,6 +235,7 @@ class OrderRecord {
   final String payment;
   final String address;
   final DateTime createdAt;
+  final List<OrderLine> items;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -208,6 +243,7 @@ class OrderRecord {
     'payment': payment,
     'address': address,
     'createdAt': createdAt.toIso8601String(),
+    'items': items.map((item) => item.toJson()).toList(),
   };
 
   static OrderRecord? fromJson(dynamic value) {
@@ -217,10 +253,12 @@ class OrderRecord {
     final payment = value['payment'];
     final address = value['address'];
     final createdAt = value['createdAt'];
+    final rawItems = value['items'];
     if (id is! String || total is! num || payment is! String || address is! String || createdAt is! String) return null;
     final date = DateTime.tryParse(createdAt);
     if (date == null) return null;
-    return OrderRecord(id: id, total: total.toDouble(), payment: payment, address: address, createdAt: date);
+    final items = rawItems is List ? rawItems.map(OrderLine.fromJson).whereType<OrderLine>().toList() : const <OrderLine>[];
+    return OrderRecord(id: id, total: total.toDouble(), payment: payment, address: address, createdAt: date, items: items);
   }
 }
 
@@ -402,7 +440,8 @@ class _AppShellState extends State<AppShell> {
 
   Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
     final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
-    final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now());
+    final items = cart.map((item) => OrderLine(name: item.product.name, unit: item.product.unit, price: item.product.price, quantity: item.quantity)).toList();
+    final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now(), items: items);
     setState(() {
       orders.insert(0, order);
       cart.clear();
@@ -1001,10 +1040,69 @@ class OrdersPage extends StatelessWidget {
           title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text(order.payment + ' • ₹' + order.total.toStringAsFixed(0)),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order))),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order))),
         ))),
     ],
   );
+}
+
+class OrderDetailsPage extends StatelessWidget {
+  const OrderDetailsPage({super.key, required this.order});
+
+  final OrderRecord order;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('Order #' + order.id)),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text(order.payment + ' • ' + _formatDate(order.createdAt)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text('Items', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        if (order.items.isEmpty)
+          const Card(child: ListTile(title: Text('Item details are unavailable for this order.')))
+        else
+          ...order.items.map((item) => Card(
+            child: ListTile(
+              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(item.quantity.toString() + ' × ₹' + item.price.toStringAsFixed(0) + ' / ' + item.unit),
+              trailing: Text('₹' + item.total.toStringAsFixed(0), style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          )),
+        const SizedBox(height: 10),
+        SummaryRow(label: 'Order Total', value: order.total, bold: true),
+        const SizedBox(height: 14),
+        Card(child: ListTile(
+          leading: const Icon(Icons.location_on_outlined),
+          title: const Text('Delivery Address'),
+          subtitle: Text(order.address),
+        )),
+        const SizedBox(height: 14),
+        FilledButton.icon(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order))),
+          icon: const Icon(Icons.local_shipping_outlined),
+          label: const Text('Track Order'),
+        ),
+      ],
+    ),
+  );
+}
+
+String _formatDate(DateTime value) {
+  final local = value.toLocal();
+  return local.day.toString().padLeft(2, '0') + '/' +
+      local.month.toString().padLeft(2, '0') + '/' +
+      local.year.toString() + ' ' +
+      local.hour.toString().padLeft(2, '0') + ':' +
+      local.minute.toString().padLeft(2, '0');
 }
 
 class TrackingPage extends StatelessWidget {
