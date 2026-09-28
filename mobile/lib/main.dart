@@ -167,6 +167,43 @@ class CustomerAddress {
   String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
 }
 
+class OrderRecord {
+  const OrderRecord({
+    required this.id,
+    required this.total,
+    required this.payment,
+    required this.address,
+    required this.createdAt,
+  });
+
+  final String id;
+  final double total;
+  final String payment;
+  final String address;
+  final DateTime createdAt;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'total': total,
+    'payment': payment,
+    'address': address,
+    'createdAt': createdAt.toIso8601String(),
+  };
+
+  static OrderRecord? fromJson(dynamic value) {
+    if (value is! Map) return null;
+    final id = value['id'];
+    final total = value['total'];
+    final payment = value['payment'];
+    final address = value['address'];
+    final createdAt = value['createdAt'];
+    if (id is! String || total is! num || payment is! String || address is! String || createdAt is! String) return null;
+    final date = DateTime.tryParse(createdAt);
+    if (date == null) return null;
+    return OrderRecord(id: id, total: total.toDouble(), payment: payment, address: address, createdAt: date);
+  }
+}
+
 class CartItem {
   CartItem(this.product, this.quantity);
   final Product product;
@@ -219,15 +256,18 @@ class _AppShellState extends State<AppShell> {
   final addresses = <CustomerAddress>[
     const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
   ];
+  final orders = <OrderRecord>[];
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
     _loadCart();
+    _loadOrders();
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
+  String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
 
   Future<void> _loadCart() async {
     final prefs = await SharedPreferences.getInstance();
@@ -262,6 +302,25 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  Future<void> _loadOrders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_ordersStorageKey);
+    if (raw == null || !mounted) return;
+    try {
+      final items = jsonDecode(raw);
+      if (items is! List) return;
+      final restored = items.map(OrderRecord.fromJson).whereType<OrderRecord>().toList();
+      if (mounted) setState(() => orders..clear()..addAll(restored));
+    } catch (_) {
+      await prefs.remove(_ordersStorageKey);
+    }
+  }
+
+  Future<void> _persistOrders() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_ordersStorageKey, jsonEncode(orders.map((order) => order.toJson()).toList()));
+  }
+
   Future<void> _persistCart() async {
     final prefs = await SharedPreferences.getInstance();
     final data = cart.map((item) => <String, dynamic>{
@@ -273,9 +332,16 @@ class _AppShellState extends State<AppShell> {
     await prefs.setString(_cartStorageKey, jsonEncode(data));
   }
 
-  Future<void> _completeOrder() async {
-    setState(cart.clear);
+  Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
+    final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
+    final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now());
+    setState(() {
+      orders.insert(0, order);
+      cart.clear();
+    });
     await _persistCart();
+    await _persistOrders();
+    return orderId;
   }
 
   Future<void> _signOut() async {
@@ -355,7 +421,7 @@ class _AppShellState extends State<AppShell> {
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
-      const OrdersPage(),
+      OrdersPage(orders: orders),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
@@ -546,7 +612,7 @@ class CartPage extends StatelessWidget {
   final List<CartItem> cart;
   final VoidCallback onChanged;
   final List<CustomerAddress> addresses;
-  final Future<void> Function() onOrderPlaced;
+  final Future<String> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -610,7 +676,7 @@ class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced});
   final double total;
   final List<CustomerAddress> addresses;
-  final Future<void> Function() onOrderPlaced;
+  final Future<String> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -678,8 +744,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       const SizedBox(height: 18),
       FilledButton(
         onPressed: widget.addresses.isEmpty ? null : () async {
-          final orderId = 'TF${DateTime.now().millisecondsSinceEpoch % 1000000}';
-          await widget.onOrderPlaced();
+          final orderId = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
           if (!context.mounted) return;
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(orderId: orderId, total: widget.total)));
         },
@@ -713,35 +778,48 @@ class OrderSuccessPage extends StatelessWidget {
 }
 
 class OrdersPage extends StatelessWidget {
-  const OrdersPage({super.key});
+  const OrdersPage({super.key, required this.orders});
+  final List<OrderRecord> orders;
+
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(20), children: [
-    const Text('My Orders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-    const SizedBox(height: 18),
-    Card(child: ListTile(
-      leading: const CircleAvatar(child: Icon(Icons.shopping_basket)),
-      title: const Text('#TF1001', style: TextStyle(fontWeight: FontWeight.w800)),
-      subtitle: const Text('Payment Confirmed • Preparing Order'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingPage())),
-    )),
-  ]);
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      const Text('My Orders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 18),
+      if (orders.isEmpty)
+        const Card(child: ListTile(
+          leading: Icon(Icons.receipt_long_outlined),
+          title: Text('No orders yet'),
+          subtitle: Text('Your completed orders will appear here.'),
+        ))
+      else
+        ...orders.map((order) => Card(child: ListTile(
+          leading: const CircleAvatar(child: Icon(Icons.shopping_basket)),
+          title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(order.payment + ' • ₹' + order.total.toStringAsFixed(0)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order))),
+        ))),
+    ],
+  );
 }
 
 class TrackingPage extends StatelessWidget {
-  const TrackingPage({super.key});
+  const TrackingPage({super.key, required this.order});
+  final OrderRecord order;
   @override
   Widget build(BuildContext context) {
     const steps = ['Order Placed', 'Payment Confirmed', 'Preparing Order', 'Out for Delivery', 'Delivered'];
     return Scaffold(
-      appBar: AppBar(title: const Text('Order #TF1001')),
+      appBar: AppBar(title: Text('Order #' + order.id)),
       body: ListView(padding: const EdgeInsets.all(24), children: [
         for (var i = 0; i < steps.length; i++) ListTile(
           leading: Icon(i < 3 ? Icons.check_circle : Icons.radio_button_unchecked, color: i < 3 ? const Color(0xFF168447) : Colors.black26),
           title: Text(steps[i], style: TextStyle(fontWeight: i == 2 ? FontWeight.w800 : FontWeight.w500)),
           subtitle: i == 2 ? const Text('In Progress') : null,
         ),
-        const Card(child: ListTile(leading: Icon(Icons.local_shipping_outlined), title: Text('Estimated Delivery'), subtitle: Text('Today, 5:00 PM - 7:00 PM'))),
+        Card(child: ListTile(leading: const Icon(Icons.local_shipping_outlined), title: const Text('Delivery Address'), subtitle: Text(order.address))),
       ]),
     );
   }
