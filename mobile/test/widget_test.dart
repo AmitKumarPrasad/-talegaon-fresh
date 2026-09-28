@@ -11,39 +11,6 @@ class FakeProductRepository implements ProductRepository {
         ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true),
       ];
 
-  testWidgets('customer cart persists across app sessions', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-
-    Widget buildShell() => MaterialApp(
-          home: AppShell(
-            repository: FakeProductRepository(),
-            session: const CustomerSession(
-              phone: '9876543210',
-              name: 'Talegaon Customer',
-              token: 'test-token',
-            ),
-          ),
-        );
-
-    await tester.pumpWidget(buildShell());
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add').first);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Cart'));
-    await tester.pumpAndSettle();
-    expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-
-    await tester.pumpWidget(buildShell());
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cart'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Tomato'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-  });
-
 }
 
 void main() {
@@ -133,4 +100,38 @@ void main() {
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
+  testWidgets('customer cart persists across app sessions', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+
+    Widget buildShell() => MaterialApp(
+          home: AppShell(
+            repository: FakeProductRepository(),
+            session: const CustomerSession(
+              phone: '9876543210',
+              name: 'Talegaon Customer',
+              token: 'test-token',
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(buildShell());
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cart'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tomato'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+
+    await tester.pumpWidget(buildShell());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cart'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tomato'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+  });
+
+
 }
