@@ -158,6 +158,12 @@ class _LoginPageState extends State<LoginPage> {
   );
 }
 
+class CustomerAddress {
+  const CustomerAddress({required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = ''});
+  final String label, fullAddress, city, pincode, landmark;
+  String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
+}
+
 class CartItem {
   CartItem(this.product, this.quantity);
   final Product product;
@@ -207,6 +213,9 @@ class _AppShellState extends State<AppShell> {
   List<Product> products = [];
   bool loading = true;
   String? error;
+  final addresses = <CustomerAddress>[
+    const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
+  ];
 
   @override
   void initState() {
@@ -283,7 +292,12 @@ class _AppShellState extends State<AppShell> {
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       CartPage(cart: cart, onChanged: () => setState(() {})),
       const OrdersPage(),
-      ProfilePage(session: widget.session, onSignOut: widget.onSignOut),
+      ProfilePage(
+        session: widget.session,
+        addresses: addresses,
+        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () => setState(() {})))),
+        onSignOut: widget.onSignOut,
+      ),
     ];
     return Scaffold(
       body: SafeArea(child: pages[tab]),
@@ -629,22 +643,140 @@ class TrackingPage extends StatelessWidget {
 }
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.session, this.onSignOut});
+  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, this.onSignOut});
   final CustomerSession session;
+  final List<CustomerAddress> addresses;
+  final VoidCallback onManageAddresses;
   final VoidCallback? onSignOut;
+
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(20), children: [
-    const Text('My Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-    const SizedBox(height: 20),
-    const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
-    const SizedBox(height: 10),
-    Center(child: Text(session.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
-    const SizedBox(height: 4),
-    Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
-    const SizedBox(height: 22),
-    ...['My Orders', 'My Addresses', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
-      .map((x) => Card(child: ListTile(title: Text(x), trailing: const Icon(Icons.chevron_right)))),
-    const SizedBox(height: 10),
-    OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
-  ]);
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      const Text('My Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 20),
+      const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
+      const SizedBox(height: 10),
+      Center(child: Text(session.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+      const SizedBox(height: 4),
+      Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
+      const SizedBox(height: 22),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.location_on_outlined),
+          title: const Text('My Addresses'),
+          subtitle: Text(addresses.isEmpty ? 'Add a delivery address' : '${addresses.length} saved address${addresses.length == 1 ? '' : 'es'}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onManageAddresses,
+        ),
+      ),
+      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
+        .map((x) => Card(child: ListTile(title: Text(x), trailing: const Icon(Icons.chevron_right)))),
+      const SizedBox(height: 10),
+      OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
+    ],
+  );
+}
+
+class AddressBookPage extends StatefulWidget {
+  const AddressBookPage({super.key, required this.addresses, required this.onChanged});
+  final List<CustomerAddress> addresses;
+  final VoidCallback onChanged;
+
+  @override
+  State<AddressBookPage> createState() => _AddressBookPageState();
+}
+
+class _AddressBookPageState extends State<AddressBookPage> {
+  Future<void> _editAddress({CustomerAddress? existing, int? index}) async {
+    final label = TextEditingController(text: existing?.label ?? '');
+    final address = TextEditingController(text: existing?.fullAddress ?? '');
+    final city = TextEditingController(text: existing?.city ?? '');
+    final pincode = TextEditingController(text: existing?.pincode ?? '');
+    final landmark = TextEditingController(text: existing?.landmark ?? '');
+
+    final result = await showDialog<CustomerAddress>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(existing == null ? 'Add Address' : 'Edit Address'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: label, decoration: const InputDecoration(labelText: 'Label (Home, Work...)')),
+            TextField(controller: address, decoration: const InputDecoration(labelText: 'Address')),
+            TextField(controller: city, decoration: const InputDecoration(labelText: 'City')),
+            TextField(controller: pincode, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'PIN code')),
+            TextField(controller: landmark, decoration: const InputDecoration(labelText: 'Landmark (optional)')),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (label.text.trim().isEmpty || address.text.trim().isEmpty || city.text.trim().isEmpty || !RegExp(r'^\d{6}$').hasMatch(pincode.text.trim())) return;
+              Navigator.pop(context, CustomerAddress(label: label.text.trim(), fullAddress: address.text.trim(), city: city.text.trim(), pincode: pincode.text.trim(), landmark: landmark.text.trim()));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    label.dispose(); address.dispose(); city.dispose(); pincode.dispose(); landmark.dispose();
+    if (!mounted || result == null) return;
+    setState(() {
+      if (index == null) {
+        widget.addresses.add(result);
+      } else {
+        widget.addresses[index] = result;
+      }
+    });
+    widget.onChanged();
+  }
+
+  Future<void> _deleteAddress(int index) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete address?'),
+        content: Text('Remove ${widget.addresses[index].label} from saved addresses?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => widget.addresses.removeAt(index));
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('My Addresses')),
+    floatingActionButton: FloatingActionButton.extended(onPressed: () => _editAddress(), icon: const Icon(Icons.add), label: const Text('Add Address')),
+    body: widget.addresses.isEmpty
+        ? const Center(child: Text('No saved addresses yet.'))
+        : ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+            itemCount: widget.addresses.length,
+            itemBuilder: (context, index) {
+              final item = widget.addresses[index];
+              return Card(
+                child: ListTile(
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text(item.landmark.isEmpty ? item.displayAddress : '${item.displayAddress}\n${item.landmark}'),
+                  isThreeLine: item.landmark.isNotEmpty,
+                  trailing: PopupMenuButton<String>(
+                    onSelected: (value) => value == 'edit' ? _editAddress(existing: item, index: index) : _deleteAddress(index),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+  );
 }
