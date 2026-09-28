@@ -595,7 +595,7 @@ class HomePage extends StatelessWidget {
   );
 }
 
-class ProductsPage extends StatelessWidget {
+class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd});
   final List<Product> products;
   final bool loading;
@@ -604,31 +604,91 @@ class ProductsPage extends StatelessWidget {
   final ValueChanged<Product> onAdd;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: [
-      const SliverAppBar.large(title: Text("Today's Products"), actions: [Icon(Icons.search), SizedBox(width: 18)]),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        sliver: SliverToBoxAdapter(
-          child: Wrap(spacing: 8, children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((x) => Chip(label: Text(x))).toList()),
+  State<ProductsPage> createState() => _ProductsPageState();
+}
+
+class _ProductsPageState extends State<ProductsPage> {
+  final searchController = TextEditingController();
+  String category = 'All';
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  bool matchesCategory(Product product) {
+    if (category == 'All') return true;
+    final name = product.name.toLowerCase();
+    if (category == 'Leafy Greens') {
+      return ['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage'].any(name.contains);
+    }
+    if (category == 'Fruits') {
+      return ['apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
+    }
+    return !['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage', 'apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = searchController.text.trim().toLowerCase();
+    final filtered = widget.products.where((product) {
+      final matchesSearch = query.isEmpty || product.name.toLowerCase().contains(query) || product.unit.toLowerCase().contains(query);
+      return matchesSearch && matchesCategory(product);
+    }).toList();
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar.large(
+          title: const Text("Today's Products"),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(72),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: TextField(
+                controller: searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Search products...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
-      if (loading)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
-      else if (error != null)
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: error!, onRetry: onRetry)))
-      else if (products.isEmpty)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products are available today.'))))
-      else
         SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd), childCount: products.length),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          sliver: SliverToBoxAdapter(
+            child: Wrap(
+              spacing: 8,
+              children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
+                label: Text(value),
+                selected: category == value,
+                onSelected: (_) => setState(() => category = value),
+              )).toList(),
+            ),
+          ),
         ),
-      ),
+        if (widget.loading)
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
+        else if (widget.error != null)
+          SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
+        else if (filtered.isEmpty)
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products match your search.'))))
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
+              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd), childCount: filtered.length),
+            ),
+          ),
       ],
-  );
+    );
+  }
 }
 
 class ErrorCard extends StatelessWidget {
