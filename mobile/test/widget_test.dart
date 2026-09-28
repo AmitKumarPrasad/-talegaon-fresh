@@ -15,6 +15,7 @@ class FakeProductRepository implements ProductRepository {
 
 void main() {
   testWidgets('Talegaon Fresh starts with customer authentication', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     expect(find.text('Welcome to Talegaon Fresh'), findsOneWidget);
     expect(find.text('Send OTP'), findsOneWidget);
