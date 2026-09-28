@@ -68,3 +68,7 @@ Customers can tap any product card to open a product details screen, review the 
 ## Order details
 
 Completed mobile orders retain an item snapshot locally. Customers can open an order from **My Orders** to review each item, quantity, unit price, order total, payment method, delivery address, and the existing tracking view.
+
+## Favorites
+
+Customers can save products to **My Favorites** from the product cards. Favorites are stored locally per customer mobile number, survive app restarts, and are cleared when that customer signs out.
