@@ -241,6 +241,33 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   CustomerSession? session;
 
   @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final phone = prefs.getString('talegaon_fresh_session_phone');
+    if (!mounted || phone == null || phone.isEmpty) return;
+    setState(() => session = CustomerSession(phone: phone, name: prefs.getString('talegaon_fresh_session_name') ?? 'Talegaon Customer', token: 'demo-token'));
+  }
+
+  Future<void> _handleAuthenticated(CustomerSession value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('talegaon_fresh_session_phone', value.phone);
+    await prefs.setString('talegaon_fresh_session_name', value.name);
+    if (mounted) setState(() => session = value);
+  }
+
+  Future<void> _signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('talegaon_fresh_session_phone');
+    await prefs.remove('talegaon_fresh_session_name');
+    if (mounted) setState(() => session = null);
+  }
+
+  @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Talegaon Fresh',
     debugShowCheckedModeBanner: false,
@@ -250,8 +277,8 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
     home: session == null
-        ? LoginPage(onAuthenticated: (value) => setState(() => session = value))
-        : AppShell(session: session!, onSignOut: () => setState(() => session = null)),
+        ? LoginPage(onAuthenticated: _handleAuthenticated)
+        : AppShell(session: session!, onSignOut: _signOut),
   );
 }
 
