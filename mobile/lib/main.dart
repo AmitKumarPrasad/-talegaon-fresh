@@ -621,7 +621,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         const Card(child: ListTile(leading: Icon(Icons.location_off_outlined), title: Text('No saved address'), subtitle: Text('Add a delivery address from Profile.')))
       else
         DropdownButtonFormField<int>(
-          value: selectedAddress.clamp(0, widget.addresses.length - 1),
+          initialValue: selectedAddress.clamp(0, widget.addresses.length - 1),
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.location_on, color: Color(0xFF168447)),
