@@ -33,9 +33,7 @@ void main() {
     expect(find.text('2'), findsOneWidget);
     expect(find.text('₹60'), findsOneWidget);
 
-    final addButton = find.byType(FilledButton).last;
-    await tester.ensureVisible(addButton);
-    await tester.tap(addButton);
+    await tester.tap(find.byIcon(Icons.shopping_cart_outlined));
     await tester.pumpAndSettle();
 
     expect(added, 2);
