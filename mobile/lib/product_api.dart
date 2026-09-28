@@ -54,7 +54,7 @@ class HttpProductRepository implements ProductRepository {
       Uri.parse('$_baseUrl/products'),
       headers: {
         'Accept': 'application/json',
-        if (_token != null && _token!.isNotEmpty)
+        if (_token != null && _token.isNotEmpty)
           'Authorization': 'Bearer $_token',
       },
     );
