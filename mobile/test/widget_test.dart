@@ -116,7 +116,9 @@ void main() {
 
     await tester.pumpWidget(buildShell());
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add').first);
+    final addButton = find.widgetWithText(FilledButton, 'Add').first;
+    await tester.ensureVisible(addButton);
+    await tester.tap(addButton);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Cart'));
