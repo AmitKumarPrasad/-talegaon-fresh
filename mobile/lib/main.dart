@@ -330,7 +330,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
     home: session == null
-        ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: authRepository)
+        ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: widget.authRepository)
         : AppShell(session: session!, onSignOut: _signOut),
   );
 }
