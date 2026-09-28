@@ -6,7 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_api.dart';
 import 'product_api.dart';
 
-void main() => runApp(const TalegaonFreshApp());
+void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
+
+AuthRepository _createAuthRepository() =>
+    const String.fromEnvironment('AUTH_MODE', defaultValue: 'demo') == 'remote'
+        ? HttpAuthRepository()
+        : const DemoAuthRepository();
 
 class CustomerSession {
   const CustomerSession({required this.phone, required this.name, this.token});
@@ -278,7 +283,8 @@ class CartItem {
 }
 
 class TalegaonFreshApp extends StatefulWidget {
-  const TalegaonFreshApp({super.key});
+  const TalegaonFreshApp({super.key, this.authRepository = const DemoAuthRepository()});
+  final AuthRepository authRepository;
 
   @override
   State<TalegaonFreshApp> createState() => _TalegaonFreshAppState();
@@ -324,7 +330,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
     home: session == null
-        ? LoginPage(onAuthenticated: _handleAuthenticated)
+        ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: authRepository)
         : AppShell(session: session!, onSignOut: _signOut),
   );
 }
