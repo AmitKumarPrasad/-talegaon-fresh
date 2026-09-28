@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:talegaon_fresh/main.dart';
 import 'package:talegaon_fresh/product_api.dart';
@@ -13,7 +14,9 @@ class FakeProductRepository implements ProductRepository {
 void main() {
   testWidgets('Talegaon Fresh loads products from repository', (tester) async {
     await tester.pumpWidget(
-      AppShell(repository: FakeProductRepository()),
+      MaterialApp(
+        home: AppShell(repository: FakeProductRepository()),
+      ),
     );
     await tester.pumpAndSettle();
 
