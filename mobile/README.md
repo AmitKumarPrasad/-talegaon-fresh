@@ -56,3 +56,7 @@ The customer app starts with a mobile-number and OTP sign-in flow before opening
 ## Customer address management
 
 The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. The current implementation keeps the address book in the mobile session; the production Address APIs can replace this local state in a later backend integration batch.
+
+## Customer cart persistence
+
+The authenticated customer cart is persisted locally per mobile number, so cart items survive app restarts. Signing out clears that customer's local cart. This is local device persistence; production order/cart synchronization remains part of the planned backend integration.

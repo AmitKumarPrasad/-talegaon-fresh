@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:talegaon_fresh/main.dart';
 import 'package:talegaon_fresh/product_api.dart';
 
@@ -9,6 +10,7 @@ class FakeProductRepository implements ProductRepository {
         ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true),
         ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true),
       ];
+
 }
 
 void main() {
@@ -98,4 +100,43 @@ void main() {
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
+  testWidgets('customer cart persists across app sessions', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+
+    Widget buildShell() => MaterialApp(
+          home: AppShell(
+            repository: FakeProductRepository(),
+            session: const CustomerSession(
+              phone: '9876543210',
+              name: 'Talegaon Customer',
+              token: 'test-token',
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(buildShell());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Products'));
+    await tester.pumpAndSettle();
+    final addButton = find.widgetWithText(FilledButton, 'Add').first;
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(NavigationDestination).at(2));
+    await tester.pumpAndSettle();
+    expect(find.text('Tomato'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+
+    await tester.pumpWidget(buildShell());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NavigationDestination).at(2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tomato'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+  });
+
+
 }
