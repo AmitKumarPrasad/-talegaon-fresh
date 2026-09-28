@@ -349,7 +349,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
-      CartPage(cart: cart, onChanged: _persistCart),
+      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses),
       const OrdersPage(),
       ProfilePage(
         session: widget.session,
@@ -537,9 +537,10 @@ class ProductCard extends StatelessWidget {
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({super.key, required this.cart, required this.onChanged});
+  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses});
   final List<CartItem> cart;
   final VoidCallback onChanged;
+  final List<CustomerAddress> addresses;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -578,7 +579,7 @@ class CartPage extends StatelessWidget {
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -600,21 +601,49 @@ class SummaryRow extends StatelessWidget {
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total});
+  const CheckoutPage({super.key, required this.total, required this.addresses});
   final double total;
+  final List<CustomerAddress> addresses;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
   String payment = 'UPI';
+  int selectedAddress = 0;
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Checkout')),
     body: ListView(padding: const EdgeInsets.all(20), children: [
       const Text('Delivery Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       const SizedBox(height: 10),
-      const Card(child: ListTile(leading: Icon(Icons.location_on, color: Color(0xFF168447)), title: Text('Home'), subtitle: Text('Talegaon, Maharashtra - 410507'))),
+      if (widget.addresses.isEmpty)
+        const Card(child: ListTile(leading: Icon(Icons.location_off_outlined), title: Text('No saved address'), subtitle: Text('Add a delivery address from Profile.')))
+      else
+        DropdownButtonFormField<int>(
+          value: selectedAddress.clamp(0, widget.addresses.length - 1),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.location_on, color: Color(0xFF168447)),
+            labelText: 'Saved address',
+          ),
+          items: [
+            for (var i = 0; i < widget.addresses.length; i++)
+              DropdownMenuItem(
+                value: i,
+                child: Text(widget.addresses[i].label),
+              ),
+          ],
+          onChanged: (value) => setState(() => selectedAddress = value ?? 0),
+        ),
+      if (widget.addresses.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        Card(child: ListTile(
+          leading: const Icon(Icons.home_outlined),
+          title: Text(widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)].label),
+          subtitle: Text(widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)].displayAddress),
+        )),
+      ],
       const SizedBox(height: 22),
       const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       Wrap(
