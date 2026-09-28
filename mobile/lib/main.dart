@@ -524,6 +524,9 @@ class _AppShellState extends State<AppShell> {
             .toList();
         loading = false;
       });
+    } on AuthenticationExpiredException {
+      await widget.onSignOut?.call();
+      return;
     } catch (e) {
       if (!mounted) return;
       setState(() {
