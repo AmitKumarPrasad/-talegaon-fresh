@@ -11,14 +11,6 @@ class Product {
   final IconData icon;
 }
 
-const mockProducts = <Product>[
-  Product(name: 'Tomato', unit: '1 kg', price: 30, icon: Icons.circle),
-  Product(name: 'Potato', unit: '1 kg', price: 25, icon: Icons.circle_outlined),
-  Product(name: 'Onion', unit: '1 kg', price: 28, icon: Icons.spa),
-  Product(name: 'Carrot', unit: '500 g', price: 32, icon: Icons.eco),
-  Product(name: 'Capsicum', unit: '500 g', price: 40, icon: Icons.local_florist),
-  Product(name: 'Cabbage', unit: '1 pc', price: 25, icon: Icons.grass),
-];
 
 class CartItem {
   CartItem(this.product, this.quantity);
