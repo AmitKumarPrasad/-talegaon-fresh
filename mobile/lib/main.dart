@@ -599,13 +599,15 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct});
+  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite});
   final List<Product> products;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpenProduct;
+  final Set<String> favorites;
+  final ValueChanged<Product> onToggleFavorite;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -675,7 +677,7 @@ class HomePage extends StatelessWidget {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct});
+  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite});
   final List<Product> products;
   final bool loading;
   final String? error;
