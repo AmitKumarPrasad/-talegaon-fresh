@@ -273,6 +273,11 @@ class _AppShellState extends State<AppShell> {
     await prefs.setString(_cartStorageKey, jsonEncode(data));
   }
 
+  Future<void> _completeOrder() async {
+    setState(cart.clear);
+    await _persistCart();
+  }
+
   Future<void> _signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cartStorageKey);
@@ -349,7 +354,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add),
-      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses),
+      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
       const OrdersPage(),
       ProfilePage(
         session: widget.session,
@@ -537,10 +542,11 @@ class ProductCard extends StatelessWidget {
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses});
+  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses, required this.onOrderPlaced});
   final List<CartItem> cart;
   final VoidCallback onChanged;
   final List<CustomerAddress> addresses;
+  final Future<void> Function() onOrderPlaced;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -579,7 +585,7 @@ class CartPage extends StatelessWidget {
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses, onOrderPlaced: onOrderPlaced))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -601,9 +607,10 @@ class SummaryRow extends StatelessWidget {
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total, required this.addresses});
+  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced});
   final double total;
   final List<CustomerAddress> addresses;
+  final Future<void> Function() onOrderPlaced;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -669,13 +676,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       SummaryRow(label: 'Total', value: widget.total, bold: true),
       const SizedBox(height: 18),
-      FilledButton(onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OrderSuccessPage())), child: const Text('Place Order')),
+      FilledButton(
+        onPressed: widget.addresses.isEmpty ? null : () async {
+          final orderId = 'TF${DateTime.now().millisecondsSinceEpoch % 1000000}';
+          await widget.onOrderPlaced();
+          if (!context.mounted) return;
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(orderId: orderId, total: widget.total)));
+        },
+        child: const Text('Place Order'),
+      ),
     ]),
   );
 }
 
 class OrderSuccessPage extends StatelessWidget {
-  const OrderSuccessPage({super.key});
+  const OrderSuccessPage({super.key, required this.orderId, required this.total});
+  final String orderId;
+  final double total;
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Center(child: Padding(
@@ -687,7 +704,7 @@ class OrderSuccessPage extends StatelessWidget {
         const SizedBox(height: 10),
         const Text('Thank you for shopping with Talegaon Fresh.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
-        const Card(child: ListTile(title: Text('Order ID'), subtitle: Text('#TF1001'), trailing: Text('Today'))),
+        Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#$orderId'), trailing: Text('₹${total.toStringAsFixed(0)}'))),
         const SizedBox(height: 18),
         FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
       ]),
