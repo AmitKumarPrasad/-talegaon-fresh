@@ -71,7 +71,7 @@ No OTPs, API keys, or JWT secrets are stored in the mobile application. The auth
 
 ## Customer address management
 
-The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. The current implementation keeps the address book in the mobile session; the production Address APIs can replace this local state in a later backend integration batch.
+The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. The current implementation keeps the address book in local mobile storage. An injectable HTTP Address API repository is now defined for the production integration. It uses `GET/POST /customers/me/addresses` and `PUT/DELETE /customers/me/addresses/{id}` with the customer Bearer token. The UI remains on local storage until those backend endpoints are deployed and the server-side address identifier is available.
 
 ## Customer cart persistence
 
