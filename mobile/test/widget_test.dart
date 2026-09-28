@@ -16,36 +16,22 @@ void main() {
     await tester.pumpWidget(const TalegaonFreshApp());
     expect(find.text('Welcome to Talegaon Fresh'), findsOneWidget);
     expect(find.text('Send OTP'), findsOneWidget);
-
     await tester.enterText(find.byType(TextField).first, '9876543210');
     await tester.tap(find.text('Send OTP'));
     await tester.pumpAndSettle();
-
     expect(find.text('Verify & Continue'), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, '123456');
     await tester.tap(find.text('Verify & Continue'));
     await tester.pumpAndSettle();
-
     expect(find.text('Talegaon Fresh'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
-
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-
     expect(find.text('My Profile'), findsOneWidget);
     expect(find.text('9876543210'), findsOneWidget);
   });
 
   testWidgets('customer can manage saved addresses', (tester) async {
-    final addresses = <CustomerAddress>[
-      const CustomerAddress(
-        label: 'Home',
-        fullAddress: 'Talegaon Dabhade',
-        city: 'Pune',
-        pincode: '410507',
-      ),
-    ];
-
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
@@ -59,18 +45,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('My Addresses'));
     await tester.pumpAndSettle();
-
     expect(find.text('Talegaon Dabhade'), findsOneWidget);
     expect(find.text('Add Address'), findsOneWidget);
-
     await tester.tap(find.text('Add Address'));
     await tester.pumpAndSettle();
-
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'Work');
     await tester.enterText(fields.at(1), 'Office Road');
@@ -78,7 +60,6 @@ void main() {
     await tester.enterText(fields.at(3), '410507');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-
     expect(find.text('Work'), findsOneWidget);
     expect(find.text('Office Road'), findsOneWidget);
   });
@@ -97,7 +78,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
     expect(find.text('Talegaon Fresh'), findsOneWidget);
     expect(find.text("Today's Fresh Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
