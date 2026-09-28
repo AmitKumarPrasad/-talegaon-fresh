@@ -34,22 +34,29 @@ class HttpProductRepository implements ProductRepository {
   HttpProductRepository({
     http.Client? client,
     String? baseUrl,
+    String? token,
   })  : _client = client ?? http.Client(),
         _baseUrl = (baseUrl ??
                 const String.fromEnvironment(
                   'API_BASE_URL',
                   defaultValue: 'https://talegaon-fresh-ai-backend.onrender.com',
                 ))
-            .replaceFirst(RegExp(r'/$'), '');
+            .replaceFirst(RegExp(r'/+$'), ''),
+        _token = token;
 
   final http.Client _client;
   final String _baseUrl;
+  final String? _token;
 
   @override
   Future<List<ApiProduct>> fetchProducts() async {
     final response = await _client.get(
       Uri.parse('$_baseUrl/products'),
-      headers: const {'Accept': 'application/json'},
+      headers: {
+        'Accept': 'application/json',
+        if (_token != null && _token.isNotEmpty)
+          'Authorization': 'Bearer $_token',
+      },
     );
 
     if (response.statusCode != 200) {

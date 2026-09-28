@@ -39,7 +39,7 @@ For another environment, pass the API base URL without a trailing slash:
 flutter run --dart-define=API_BASE_URL=https://your-api.example.com
 ```
 
-No API secrets are stored in the mobile application.
+No API secrets are stored in the mobile application. When a customer session has a token, the mobile product API sends it as a Bearer token in the Authorization header.
 
 ## Local development
 

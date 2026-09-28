@@ -1,0 +1,58 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:talegaon_fresh/product_api.dart';
+
+void main() {
+  test('product API sends bearer token when provided', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.toString(), 'https://example.test/products');
+      expect(request.headers['authorization'], 'Bearer jwt-token');
+      return http.Response(
+        jsonEncode({
+          'products': [
+            {
+              'id': 1,
+              'name': 'Tomato',
+              'unit': '1 kg',
+              'price': 30,
+              'in_stock': true,
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    final repository = HttpProductRepository(
+      client: client,
+      baseUrl: 'https://example.test/',
+      token: 'jwt-token',
+    );
+
+    final products = await repository.fetchProducts();
+    expect(products.single.name, 'Tomato');
+  });
+
+  test('product API omits authorization header without a token', () async {
+    final client = MockClient((request) async {
+      expect(request.headers.containsKey('authorization'), isFalse);
+      return http.Response(
+        jsonEncode({'products': []}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+
+    final repository = HttpProductRepository(
+      client: client,
+      baseUrl: 'https://example.test',
+    );
+
+    expect(await repository.fetchProducts(), isEmpty);
+  });
+}
