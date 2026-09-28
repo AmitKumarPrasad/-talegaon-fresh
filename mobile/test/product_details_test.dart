@@ -10,13 +10,11 @@ void main() {
       price: 30,
       icon: Icons.circle,
     );
-    var added = 0;
-
     await tester.pumpWidget(
       MaterialApp(
         home: ProductDetailsPage(
           product: product,
-          onAdd: (_) => added++,
+          onAdd: (_) {},
         ),
       ),
     );
@@ -33,7 +31,5 @@ void main() {
     expect(find.text('2'), findsOneWidget);
     expect(find.text('₹60'), findsOneWidget);
 
-    expect(find.text('2'), findsOneWidget);
-    expect(find.text('₹60'), findsOneWidget);
   });
 }
