@@ -30,7 +30,7 @@ class TalegaonFreshApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF168447)),
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
-    home: const AppShell(),
+    home: AppShell(),
   );
 }
 
