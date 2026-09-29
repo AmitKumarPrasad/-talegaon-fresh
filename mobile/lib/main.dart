@@ -722,7 +722,7 @@ class _AppShellState extends State<AppShell> {
                   unit: p.unit,
                   price: p.price,
                   icon: _iconForProduct(p.name),
-                  imageUrl: _imageUrlForProduct(p.name),
+                  imageUrl: p.imageUrl ?? _imageUrlForProduct(p.name),
                 ))
             .toList();
         loading = false;
