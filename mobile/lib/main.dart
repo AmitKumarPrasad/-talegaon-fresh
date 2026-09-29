@@ -783,6 +783,27 @@ class _AppShellState extends State<AppShell> {
     _persistCart();
   }
 
+  void _incrementCartItem(CartItem item) {
+    setState(() => item.quantity++);
+    _persistCart();
+  }
+
+  void _decrementCartItem(CartItem item) {
+    setState(() {
+      if (item.quantity > 1) {
+        item.quantity--;
+      } else {
+        cart.remove(item);
+      }
+    });
+    _persistCart();
+  }
+
+  void _removeCartItem(CartItem item) {
+    setState(() => cart.remove(item));
+    _persistCart();
+  }
+
   int get count => cart.fold(0, (sum, x) => sum + x.quantity);
 
   void _openProduct(Product product) {
@@ -794,7 +815,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
-      CartPage(cart: cart, onChanged: _persistCart, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
+      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
@@ -1154,9 +1175,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({super.key, required this.cart, required this.onChanged, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
+  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
   final List<CartItem> cart;
-  final Future<void> Function() onChanged;
+  final ValueChanged<CartItem> onIncrement;
+  final ValueChanged<CartItem> onDecrement;
+  final ValueChanged<CartItem> onRemove;
   final String? syncError;
   final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
@@ -1198,9 +1221,10 @@ class CartPage extends StatelessWidget {
             title: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('₹' + item.product.price.toStringAsFixed(0) + ' / ' + item.product.unit),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              IconButton(onPressed: () { if (item.quantity > 1) item.quantity--; onChanged(); }, icon: const Icon(Icons.remove_circle_outline)),
+              IconButton(onPressed: () => onDecrement(item), icon: const Icon(Icons.remove_circle_outline)),
               Text(item.quantity.toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
-              IconButton(onPressed: () { item.quantity++; onChanged(); }, icon: const Icon(Icons.add_circle_outline)),
+              IconButton(onPressed: () => onIncrement(item), icon: const Icon(Icons.add_circle_outline)),
+              IconButton(onPressed: () => onRemove(item), icon: const Icon(Icons.delete_outline), tooltip: 'Remove'),
             ]),
           ),
         )),
