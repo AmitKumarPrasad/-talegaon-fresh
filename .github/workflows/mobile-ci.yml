@@ -41,3 +41,10 @@ jobs:
         run: flutter build apk --debug
       - name: Build release APK
         run: flutter build apk --release
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: talegaon-fresh-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
