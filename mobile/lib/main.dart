@@ -429,6 +429,7 @@ class _AppShellState extends State<AppShell> {
 
   bool get _useRemoteCustomerApi => (widget.session.token ?? '').split('.').length == 3;
   final favorites = <String>{};
+  String? cartSyncError;
 
   @override
   void initState() {
@@ -553,7 +554,21 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistCart() async {
-    if (_useRemoteCustomerApi) { try { await customerApi.replaceCart(cart); return; } catch (_) {} }
+    if (_useRemoteCustomerApi) {
+      try {
+        await customerApi.replaceCart(cart);
+        if (mounted && cartSyncError != null) setState(() => cartSyncError = null);
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => cartSyncError = e.message);
+      } catch (_) {
+        if (mounted) setState(() => cartSyncError = 'Could not sync your cart. Please retry.');
+      }
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final data = cart.map((item) => <String, dynamic>{
       'name': item.product.name,
@@ -684,7 +699,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
-      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
+      CartPage(cart: cart, onChanged: _persistCart, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       ProfilePage(
         session: widget.session,
@@ -1020,9 +1035,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses, required this.onOrderPlaced, this.api});
+  const CartPage({super.key, required this.cart, required this.onChanged, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
   final List<CartItem> cart;
-  final VoidCallback onChanged;
+  final Future<void> Function() onChanged;
+  final String? syncError;
+  final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
   final HttpCustomerRepository? api;
@@ -1045,7 +1062,17 @@ class CartPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
       children: [
         const Text('My Cart', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 18),
+        if (syncError != null)
+          Card(
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: ListTile(
+              leading: Icon(Icons.cloud_off, color: Theme.of(context).colorScheme.onErrorContainer),
+              title: const Text('Cart sync failed'),
+              subtitle: Text(syncError!),
+              trailing: TextButton(onPressed: onRetrySync, child: const Text('Retry')),
+            ),
+          ),
+        if (syncError != null) const SizedBox(height: 10),
         ...cart.map((item) => Card(
           elevation: 0, child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.eco)),
