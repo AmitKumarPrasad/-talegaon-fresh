@@ -10,7 +10,7 @@ import 'product_api.dart';
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
 AuthRepository _createAuthRepository() =>
-    const String.fromEnvironment('AUTH_MODE', defaultValue: 'demo') == 'remote'
+    const String.fromEnvironment('AUTH_MODE', defaultValue: 'remote') == 'remote'
         ? HttpAuthRepository()
         : const DemoAuthRepository();
 
