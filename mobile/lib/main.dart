@@ -8,6 +8,7 @@ import 'auth_api.dart';
 import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
+import 'admin_ui.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
@@ -220,6 +221,12 @@ class _LoginPageState extends State<LoginPage> {
                           ? 'Please wait…'
                           : (otpSent ? 'Verify & Continue' : 'Send OTP'),
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminLoginPage())),
+                    icon: const Icon(Icons.storefront_outlined, size: 18),
+                    label: const Text('Store Admin Login'),
                   ),
                 ],
               ),
@@ -856,21 +863,33 @@ class _AppShellState extends State<AppShell> {
     ];
     return Scaffold(
       body: SafeArea(child: pages[tab]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
-        onDestinationSelected: (i) => setState(() => tab = i),
-        destinations: [
-          const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Products'),
-          NavigationDestination(
-            icon: Badge(isLabelVisible: count > 0, label: Text(count.toString()), child: const Icon(Icons.shopping_cart_outlined)),
-            selectedIcon: const Icon(Icons.shopping_cart),
-            label: 'Cart',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, -4))],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: NavigationBar(
+            selectedIndex: tab,
+            onDestinationSelected: (i) => setState(() => tab = i),
+            indicatorColor: const Color(0xFFDCF2E1),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            destinations: [
+              const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+              const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Products'),
+              NavigationDestination(
+                icon: Badge(isLabelVisible: count > 0, label: Text(count.toString()), child: const Icon(Icons.shopping_cart_outlined)),
+                selectedIcon: const Icon(Icons.shopping_cart),
+                label: 'Cart',
+              ),
+              const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+              const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'AI'),
+              const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+            ],
           ),
-          const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
-          const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'AI'),
-          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+        ),
       ),
     );
   }
@@ -1127,35 +1146,67 @@ class ProductCard extends StatelessWidget {
   final ValueChanged<Product> onToggleFavorite;
 
   @override
-  Widget build(BuildContext context) => Card(
-    elevation: 0, color: Colors.white,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: () => onOpen(product),
-      child: Stack(
-        children: [
-          Padding(
-          padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: ProductImage(product: product)),
-        const SizedBox(height: 10),
-        Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => onAdd(product), icon: const Icon(Icons.add, size: 18), label: const Text('Add'))),
-      ]),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton.filledTonal(
-              tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-              onPressed: () => onToggleFavorite(product),
-              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onOpen(product),
+        child: Stack(
+          children: [
+            Padding(
+            padding: const EdgeInsets.all(12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Stack(children: [
+            Positioned.fill(child: ProductImage(product: product)),
+            Positioned(
+              top: 6,
+              left: 6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: const Color(0xFF168447), borderRadius: BorderRadius.circular(20)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.eco, size: 11, color: Colors.white),
+                  SizedBox(width: 3),
+                  Text('Fresh', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                ]),
+              ),
+            ),
+          ])),
+          const SizedBox(height: 10),
+          Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+              onPressed: () => onAdd(product),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add'),
             ),
           ),
-        ],
+        ]),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton.filledTonal(
+                tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                onPressed: () => onToggleFavorite(product),
+                icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
