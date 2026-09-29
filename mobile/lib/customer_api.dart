@@ -124,6 +124,11 @@ class HttpCustomerRepository {
     return _orderFromApi(_success(response));
   }
 
+  Future<OrderRecord> getOrder(int orderId) async {
+    final response = await _client.get(Uri.parse("$_baseUrl/customers/me/orders/$orderId"), headers: _headers);
+    return _orderFromApi(_success(response));
+  }
+
   Future<List<OrderRecord>> getOrders() async {
     final response = await _client.get(Uri.parse('$_baseUrl/customers/me/orders'), headers: _headers);
     final body = _success(response);
