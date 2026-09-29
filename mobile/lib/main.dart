@@ -24,11 +24,37 @@ class CustomerSession {
 }
 
 class Product {
-  const Product({required this.name, required this.unit, required this.price, required this.icon});
+  const Product({required this.name, required this.unit, required this.price, required this.icon, this.imageUrl});
   final String name, unit;
   final double price;
   final IconData icon;
+  final String? imageUrl;
 }
+
+const Map<String, String> _productImageUrls = {
+  'tomato': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/400px-Tomato_je.jpg',
+  'potato': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Patates.jpg/400px-Patates.jpg',
+  'onion': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mixed_onions.jpg/400px-Mixed_onions.jpg',
+  'carrot': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/400px-Vegetable-Carrot-Bundle-wStalks.jpg',
+  'capsicum': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Green-Yellow-Red-Pepper-2009.jpg/400px-Green-Yellow-Red-Pepper-2009.jpg',
+  'cabbage': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cabbage_and_cross_section_on_white.jpg/400px-Cabbage_and_cross_section_on_white.jpg',
+  'cauliflower': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Chou-fleur_02.jpg/400px-Chou-fleur_02.jpg',
+  'ladyfinger': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hong_Kong_Okra_Aug_25_2012.JPG/400px-Hong_Kong_Okra_Aug_25_2012.JPG',
+  'green beans': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Heaps_of_beans.jpg/400px-Heaps_of_beans.jpg',
+  'spinach': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Spinacia_oleracea_Spinazie_bloeiend.jpg/400px-Spinacia_oleracea_Spinazie_bloeiend.jpg',
+  'coriander': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg/400px-Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg',
+  'green chilli': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Madame_Jeanette_and_other_chillies.jpg/400px-Madame_Jeanette_and_other_chillies.jpg',
+  'ginger': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Koeh-146-no_text.jpg/400px-Koeh-146-no_text.jpg',
+  'garlic': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Allium_sativum_Woodwill_1793.jpg/400px-Allium_sativum_Woodwill_1793.jpg',
+  'banana': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Bananavarieties.jpg/400px-Bananavarieties.jpg',
+  'apple': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/400px-Pink_lady_and_cross_section.jpg',
+  'orange': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Oranges_-_whole-halved-segment.jpg/400px-Oranges_-_whole-halved-segment.jpg',
+  'grapes': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Grapes%2C_Rostov-on-Don%2C_Russia.jpg/400px-Grapes%2C_Rostov-on-Don%2C_Russia.jpg',
+  'pomegranate': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Pomegranate_Juice_%282019%29.jpg/400px-Pomegranate_Juice_%282019%29.jpg',
+  'papaya': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg/400px-Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg',
+};
+
+String? _imageUrlForProduct(String name) => _productImageUrls[name.toLowerCase()];
 
 
 class LoginPage extends StatefulWidget {
@@ -358,11 +384,15 @@ class TalegaonFreshApp extends StatefulWidget {
 
 class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   CustomerSession? session;
+  bool showSplash = true;
 
   @override
   void initState() {
     super.initState();
     _restoreSession();
+    Future<void>.delayed(const Duration(milliseconds: 1600), () {
+      if (mounted) setState(() => showSplash = false);
+    });
   }
 
   Future<void> _restoreSession() async {
@@ -408,9 +438,46 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF168447)),
       scaffoldBackgroundColor: const Color(0xFFF7FAF5),
     ),
-    home: session == null
-        ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: widget.authRepository)
-        : AppShell(session: session!, onSignOut: _signOut),
+    home: showSplash
+        ? const SplashScreen()
+        : session == null
+            ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: widget.authRepository)
+            : AppShell(session: session!, onSignOut: _signOut),
+  );
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFEFF8F0), Color(0xFFD8EFDD)],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
+            ),
+            const SizedBox(height: 24),
+            const Text('Talegaon Fresh', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
+            const SizedBox(height: 8),
+            const Text('Fresh. Local. For a Healthier You.', style: TextStyle(fontSize: 15, color: Colors.black54)),
+          ],
+        ),
+      ),
+    ),
   );
 }
 
@@ -501,6 +568,7 @@ class _AppShellState extends State<AppShell> {
             unit: unit,
             price: price.toDouble(),
             icon: _iconForProduct(name),
+            imageUrl: _imageUrlForProduct(name),
           ),
           quantity.toInt(),
         ));
@@ -654,6 +722,7 @@ class _AppShellState extends State<AppShell> {
                   unit: p.unit,
                   price: p.price,
                   icon: _iconForProduct(p.name),
+                  imageUrl: _imageUrlForProduct(p.name),
                 ))
             .toList();
         loading = false;
@@ -954,6 +1023,35 @@ class ErrorCard extends StatelessWidget {
   );
 }
 
+class ProductImage extends StatelessWidget {
+  const ProductImage({super.key, required this.product, this.size = 62, this.borderRadius = 14});
+  final Product product;
+  final double size;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = product.imageUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Container(
+        width: double.infinity,
+        color: const Color(0xFFEAF6EA),
+        child: url == null
+            ? Icon(product.icon, size: size, color: const Color(0xFF2E9B55))
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : Center(child: SizedBox(width: size * 0.4, height: size * 0.4, child: const CircularProgressIndicator(strokeWidth: 2))),
+                errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
+              ),
+      ),
+    );
+  }
+}
+
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite});
   final Product product;
@@ -974,11 +1072,7 @@ class ProductCard extends StatelessWidget {
           Padding(
           padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(color: const Color(0xFFEAF6EA), borderRadius: BorderRadius.circular(14)),
-          child: Icon(product.icon, size: 62, color: const Color(0xFF2E9B55)),
-        )),
+        Expanded(child: ProductImage(product: product)),
         const SizedBox(height: 10),
         Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
@@ -1029,13 +1123,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Container(
+        SizedBox(
           height: 260,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF6EA),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Icon(widget.product.icon, size: 120, color: const Color(0xFF2E9B55)),
+          width: double.infinity,
+          child: ProductImage(product: widget.product, size: 120, borderRadius: 24),
         ),
         const SizedBox(height: 22),
         Text(widget.product.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
@@ -1103,7 +1194,7 @@ class CartPage extends StatelessWidget {
         if (syncError != null) const SizedBox(height: 10),
         ...cart.map((item) => Card(
           elevation: 0, child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.eco)),
+            leading: SizedBox(width: 44, height: 44, child: ProductImage(product: item.product, size: 26, borderRadius: 10)),
             title: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('₹' + item.product.price.toStringAsFixed(0) + ' / ' + item.product.unit),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1153,6 +1244,34 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   String payment = 'UPI';
   int selectedAddress = 0;
+  bool savingAddress = false;
+
+  Future<void> _addAddress() async {
+    final result = await showDialog<CustomerAddress>(
+      context: context,
+      builder: (_) => const _AddressFormDialog(),
+    );
+    if (result == null || !mounted) return;
+    setState(() => savingAddress = true);
+    try {
+      final saved = widget.api == null ? result : await widget.api!.createAddress(result);
+      if (!mounted) return;
+      setState(() {
+        widget.addresses.add(saved);
+        selectedAddress = widget.addresses.length - 1;
+        savingAddress = false;
+      });
+    } on CustomerApiException catch (e) {
+      if (!mounted) return;
+      setState(() => savingAddress = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => savingAddress = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save address. Please try again.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Checkout')),
@@ -1160,32 +1279,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
       const Text('Delivery Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       const SizedBox(height: 10),
       if (widget.addresses.isEmpty)
-        const Card(child: ListTile(leading: Icon(Icons.location_off_outlined), title: Text('No saved address'), subtitle: Text('Add a delivery address from Profile.')))
+        const Card(child: ListTile(leading: Icon(Icons.location_off_outlined), title: Text('No saved address'), subtitle: Text('Add a delivery address to continue.')))
       else
-        DropdownButtonFormField<int>(
-          initialValue: selectedAddress.clamp(0, widget.addresses.length - 1),
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.location_on, color: Color(0xFF168447)),
-            labelText: 'Saved address',
-          ),
-          items: [
-            for (var i = 0; i < widget.addresses.length; i++)
-              DropdownMenuItem(
-                value: i,
-                child: Text(widget.addresses[i].label),
+        ...[
+          for (var i = 0; i < widget.addresses.length; i++)
+            Card(
+              elevation: 0,
+              color: selectedAddress == i ? const Color(0xFFE1F4E6) : Colors.white,
+              child: ListTile(
+                leading: Icon(selectedAddress == i ? Icons.radio_button_checked : Icons.radio_button_off, color: const Color(0xFF168447)),
+                title: Text(widget.addresses[i].label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(widget.addresses[i].displayAddress),
+                onTap: () => setState(() => selectedAddress = i),
               ),
-          ],
-          onChanged: (value) => setState(() => selectedAddress = value ?? 0),
-        ),
-      if (widget.addresses.isNotEmpty) ...[
-        const SizedBox(height: 8),
-        Card(child: ListTile(
-          leading: const Icon(Icons.home_outlined),
-          title: Text(widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)].label),
-          subtitle: Text(widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)].displayAddress),
-        )),
-      ],
+            ),
+        ],
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: savingAddress ? null : _addAddress,
+        icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.add),
+        label: Text(savingAddress ? 'Saving…' : '+ Add New Address'),
+      ),
       const SizedBox(height: 22),
       const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       Wrap(

@@ -17,6 +17,7 @@ void main() {
   testWidgets('Talegaon Fresh starts with customer authentication', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
+    await tester.pump(const Duration(milliseconds: 1700));
     expect(find.text('Welcome to Talegaon Fresh'), findsOneWidget);
     expect(find.text('Send OTP'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, '9876543210');
