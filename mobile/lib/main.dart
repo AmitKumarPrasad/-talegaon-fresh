@@ -451,9 +451,24 @@ class _AppShellState extends State<AppShell> {
     if (_useRemoteCustomerApi) {
       try {
         final remote = await customerApi.getCart(products);
-        if (mounted) setState(() => cart..clear()..addAll(remote));
+        if (mounted) {
+          setState(() {
+            cart..clear()..addAll(remote);
+            cartSyncError = null;
+          });
+        }
         return;
-      } catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => cartSyncError = e.message);
+        return;
+      } catch (_) {
+        if (mounted) setState(() => cartSyncError = 'Could not load your cart. Please retry.');
+        return;
+      }
     }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_cartStorageKey);
