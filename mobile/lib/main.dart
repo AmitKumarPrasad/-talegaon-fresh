@@ -263,6 +263,7 @@ class OrderRecord {
     required this.payment,
     required this.address,
     required this.createdAt,
+    this.status = "CONFIRMED",
     this.items = const [],
   });
 
@@ -270,6 +271,7 @@ class OrderRecord {
   final double total;
   final String payment;
   final String address;
+  final String status;
   final DateTime createdAt;
   final List<OrderLine> items;
 
@@ -279,7 +281,7 @@ class OrderRecord {
     'payment': payment,
     'address': address,
     'createdAt': createdAt.toIso8601String(),
-    'status': 'CONFIRMED',
+    'status': status,
     'items': items.map((item) => item.toJson()).toList(),
   };
 
@@ -304,6 +306,7 @@ class OrderRecord {
       payment: value['payment_method'] is String ? value['payment_method'] : '',
       address: value['address'] is String ? value['address'] : '',
       createdAt: DateTime.now(),
+      status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
     );
   }
