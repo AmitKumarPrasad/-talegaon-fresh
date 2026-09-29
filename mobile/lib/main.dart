@@ -285,6 +285,7 @@ class OrderRecord {
     'address': address,
     'createdAt': createdAt.toIso8601String(),
     'status': status,
+    'paymentLinkUrl': paymentLinkUrl,
     'items': items.map((item) => item.toJson()).toList(),
   };
 
@@ -327,7 +328,16 @@ class OrderRecord {
     final date = DateTime.tryParse(createdAt);
     if (date == null) return null;
     final items = rawItems is List ? rawItems.map(OrderLine.fromJson).whereType<OrderLine>().toList() : const <OrderLine>[];
-    return OrderRecord(id: id, total: total.toDouble(), payment: payment, address: address, createdAt: date, items: items);
+    return OrderRecord(
+      id: id,
+      total: total.toDouble(),
+      payment: payment,
+      address: address,
+      createdAt: date,
+      status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
+      items: items,
+      paymentLinkUrl: value['paymentLinkUrl'] is String ? value['paymentLinkUrl'] as String : null,
+    );
   }
 }
 
