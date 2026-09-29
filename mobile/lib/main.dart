@@ -1582,11 +1582,13 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
           Navigator.pop(
             context,
             CustomerAddress(
+              id: widget.existing?.id,
               label: label.text.trim(),
               fullAddress: address.text.trim(),
               city: city.text.trim(),
               pincode: pincode.text.trim(),
               landmark: landmark.text.trim(),
+              isDefault: widget.existing?.isDefault ?? false,
             ),
           );
         },
