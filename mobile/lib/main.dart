@@ -684,7 +684,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
-      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
+      CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       ProfilePage(
         session: widget.session,
@@ -1020,11 +1020,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 }
 
 class CartPage extends StatelessWidget {
-  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses, required this.onOrderPlaced});
+  const CartPage({super.key, required this.cart, required this.onChanged, required this.addresses, required this.onOrderPlaced, this.api});
   final List<CartItem> cart;
   final VoidCallback onChanged;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final HttpCustomerRepository? api;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -1063,7 +1064,7 @@ class CartPage extends StatelessWidget {
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses, onOrderPlaced: onOrderPlaced))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses, onOrderPlaced: onOrderPlaced, api: api))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -1085,10 +1086,11 @@ class SummaryRow extends StatelessWidget {
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced});
+  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, this.api});
   final double total;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final HttpCustomerRepository? api;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -1159,7 +1161,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           try {
             final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
             if (!context.mounted) return;
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order)));
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, api: widget.api)));
           } on CustomerApiException catch (e) {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -1174,9 +1176,39 @@ class _CheckoutPageState extends State<CheckoutPage> {
   );
 }
 
-class OrderSuccessPage extends StatelessWidget {
-  const OrderSuccessPage({super.key, required this.order});
+class OrderSuccessPage extends StatefulWidget {
+  const OrderSuccessPage({super.key, required this.order, this.api});
   final OrderRecord order;
+  final HttpCustomerRepository? api;
+
+  @override
+  State<OrderSuccessPage> createState() => _OrderSuccessPageState();
+}
+
+class _OrderSuccessPageState extends State<OrderSuccessPage> {
+  late OrderRecord order;
+  bool refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    order = widget.order;
+  }
+
+  Future<void> _refreshPayment() async {
+    final api = widget.api;
+    final id = int.tryParse(order.id);
+    if (api == null || id == null || order.payment != 'UPI') return;
+    setState(() => refreshing = true);
+    try {
+      final updated = await api.getOrder(id);
+      if (mounted) setState(() => order = updated);
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
+  }
 
   Future<void> _pay(BuildContext context) async {
     final url = order.paymentLinkUrl;
@@ -1192,16 +1224,18 @@ class OrderSuccessPage extends StatelessWidget {
     body: Center(child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(order.paymentLinkUrl == null ? Icons.check_circle : Icons.payment, size: 56, color: const Color(0xFF168447)),
+        Icon(order.status == 'CONFIRMED' ? Icons.check_circle : Icons.payment, size: 56, color: const Color(0xFF168447)),
         const SizedBox(height: 22),
-        Text(order.paymentLinkUrl == null ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+        Text(order.status == 'CONFIRMED' ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(order.paymentLinkUrl == null ? 'Thank you for shopping with Talegaon Fresh.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
+        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with Talegaon Fresh.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
         Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
         if (order.paymentLinkUrl != null) ...[
           const SizedBox(height: 18),
           FilledButton.icon(onPressed: () => _pay(context), icon: const Icon(Icons.open_in_new), label: const Text('Pay with UPI')),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(onPressed: refreshing ? null : _refreshPayment, icon: const Icon(Icons.refresh), label: Text(refreshing ? 'Refreshing…' : 'Refresh payment status')),
         ],
         const SizedBox(height: 12),
         OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
