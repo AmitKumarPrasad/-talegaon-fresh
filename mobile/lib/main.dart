@@ -366,6 +366,14 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   }
 
   Future<void> _signOut() async {
+    final token = session?.token;
+    if (token != null && token.split('.').length == 3) {
+      try {
+        await HttpCustomerRepository(token: token).logout();
+      } catch (_) {
+        // Clear local credentials even if the server cannot be reached.
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('talegaon_fresh_session_phone');
     await prefs.remove('talegaon_fresh_session_name');
