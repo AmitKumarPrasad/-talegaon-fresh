@@ -467,16 +467,85 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Talegaon Fresh',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF168447)),
-      scaffoldBackgroundColor: const Color(0xFFF7FAF5),
-    ),
+    theme: _buildTheme(),
     home: showSplash
         ? const SplashScreen()
         : session == null
             ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: widget.authRepository)
             : AppShell(session: session!, onSignOut: _signOut),
+  );
+}
+
+const _brandGreen = Color(0xFF168447);
+const _brandGreenDark = Color(0xFF0D5C30);
+const _surfaceTint = Color(0xFFF7FAF5);
+
+ThemeData _buildTheme() {
+  final colorScheme = ColorScheme.fromSeed(seedColor: _brandGreen);
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: _surfaceTint,
+    fontFamily: 'Roboto',
+    appBarTheme: const AppBarTheme(
+      backgroundColor: _surfaceTint,
+      foregroundColor: Colors.black87,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w800),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: Colors.white,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: _brandGreen,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _brandGreenDark,
+        side: const BorderSide(color: _brandGreen, width: 1.3),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: _brandGreenDark),
+    ),
+    chipTheme: ChipThemeData(
+      selectedColor: const Color(0xFFDCF2E1),
+      backgroundColor: Colors.white,
+      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30), side: const BorderSide(color: Color(0xFFE1E8E3))),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE1E8E3))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _brandGreen, width: 1.6)),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+        fontSize: 11,
+        fontWeight: states.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w500,
+        color: states.contains(WidgetState.selected) ? _brandGreenDark : Colors.black54,
+      )),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
   );
 }
 
@@ -1032,9 +1101,6 @@ class _ProductsPageState extends State<ProductsPage> {
                 decoration: const InputDecoration(
                   hintText: 'Search products...',
                   prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
                 ),
               ),
             ),

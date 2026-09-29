@@ -191,7 +191,6 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                         onSubmitted: (_) => send(),
                         decoration: const InputDecoration(
                           hintText: 'Ask about Talegaon Fresh…',
-                          border: OutlineInputBorder(),
                         ),
                       ),
                     ),
