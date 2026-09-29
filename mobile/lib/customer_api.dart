@@ -11,6 +11,52 @@ class CustomerApiException implements Exception {
   final int? statusCode;
 }
 
+class OrderTracking {
+  const OrderTracking({
+    required this.status,
+    this.deliveryPersonName,
+    this.deliveryPersonPhone,
+    this.lat,
+    this.lng,
+    this.updatedAt,
+  });
+
+  final String status;
+  final String? deliveryPersonName;
+  final String? deliveryPersonPhone;
+  final double? lat;
+  final double? lng;
+  final DateTime? updatedAt;
+
+  bool get hasLiveLocation => lat != null && lng != null;
+
+  factory OrderTracking.fromJson(Map<String, dynamic> json) => OrderTracking(
+        status: json['status'] as String? ?? 'PENDING',
+        deliveryPersonName: json['delivery_person_name'] as String?,
+        deliveryPersonPhone: json['delivery_person_phone'] as String?,
+        lat: (json['delivery_lat'] as num?)?.toDouble(),
+        lng: (json['delivery_lng'] as num?)?.toDouble(),
+        updatedAt: json['delivery_location_updated_at'] is String
+            ? DateTime.tryParse(json['delivery_location_updated_at'] as String)
+            : null,
+      );
+}
+
+class OrderChatMessage {
+  const OrderChatMessage({required this.sender, required this.message, required this.createdAt});
+  final String sender;
+  final String message;
+  final DateTime createdAt;
+
+  bool get fromCustomer => sender == 'customer';
+
+  factory OrderChatMessage.fromJson(Map<String, dynamic> json) => OrderChatMessage(
+        sender: json['sender'] as String? ?? 'delivery',
+        message: json['message'] as String? ?? '',
+        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+}
+
 class HttpCustomerRepository {
   HttpCustomerRepository({
     required this.token,
@@ -165,4 +211,26 @@ class HttpCustomerRepository {
   }
 
   OrderRecord _orderFromApi(Map<String, dynamic> value) => OrderRecord.fromApiJson(value);
+
+  Future<OrderTracking> getTracking(int orderId) async {
+    final response = await _client.get(Uri.parse('$_baseUrl/customers/me/orders/$orderId/tracking'), headers: _headers);
+    return OrderTracking.fromJson(_success(response));
+  }
+
+  Future<List<OrderChatMessage>> getMessages(int orderId) async {
+    final response = await _client.get(Uri.parse('$_baseUrl/customers/me/orders/$orderId/messages'), headers: _headers);
+    final body = _success(response);
+    final rows = body['messages'];
+    if (rows is! List) return [];
+    return rows.whereType<Map>().map((e) => OrderChatMessage.fromJson(Map<String, dynamic>.from(e))).toList();
+  }
+
+  Future<void> sendMessage(int orderId, String message) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders/$orderId/messages'),
+      headers: _headers,
+      body: jsonEncode({'message': message}),
+    );
+    _success(response);
+  }
 }

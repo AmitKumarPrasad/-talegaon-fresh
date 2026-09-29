@@ -48,6 +48,8 @@ class AdminOrder {
     required this.address,
     this.paymentMethod,
     this.items = const [],
+    this.deliveryPersonName,
+    this.deliveryPersonPhone,
   });
 
   final int orderId;
@@ -58,6 +60,8 @@ class AdminOrder {
   final String address;
   final String? paymentMethod;
   final List<AdminOrderItem> items;
+  final String? deliveryPersonName;
+  final String? deliveryPersonPhone;
 
   factory AdminOrder.fromJson(Map<String, dynamic> json) => AdminOrder(
         orderId: (json['order_id'] as num).toInt(),
@@ -73,6 +77,8 @@ class AdminOrder {
             .whereType<Map>()
             .map((e) => AdminOrderItem.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
+        deliveryPersonName: json['delivery_person_name'] as String?,
+        deliveryPersonPhone: json['delivery_person_phone'] as String?,
       );
 }
 
@@ -157,6 +163,16 @@ class HttpAdminRepository {
   Future<AdminOrder> getOrder(int orderId) async {
     final response = await _client.get(Uri.parse('$_baseUrl/admin/orders/$orderId'), headers: _headers);
     return AdminOrder.fromJson(_success(response));
+  }
+
+  Future<String?> assignDelivery(int orderId, String name, String phone) async {
+    final response = await _client.patch(
+      Uri.parse('$_baseUrl/admin/orders/$orderId/delivery'),
+      headers: _headers,
+      body: jsonEncode({'delivery_person_name': name, 'delivery_person_phone': phone}),
+    );
+    final body = _success(response);
+    return body['delivery_link'] as String?;
   }
 
   Future<AdminOrder> updateOrderStatus(int orderId, String status) async {

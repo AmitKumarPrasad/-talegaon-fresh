@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -1747,12 +1748,27 @@ class _TrackingPageState extends State<TrackingPage> {
   late OrderRecord order;
   bool loading = false;
   String? error;
+  OrderTracking? tracking;
+  List<OrderChatMessage> messages = [];
+  final _chatController = TextEditingController();
+  final _chatScrollController = ScrollController();
+  bool _sendingMessage = false;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     order = widget.order;
     _refresh();
+    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) => _refreshTrackingAndMessages());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _chatController.dispose();
+    _chatScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -1769,6 +1785,69 @@ class _TrackingPageState extends State<TrackingPage> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+    await _refreshTrackingAndMessages();
+  }
+
+  Future<void> _refreshTrackingAndMessages() async {
+    final api = widget.api;
+    final id = int.tryParse(order.id);
+    if (api == null || id == null || !mounted) return;
+    try {
+      final t = await api.getTracking(id);
+      final m = await api.getMessages(id);
+      if (mounted) setState(() { tracking = t; messages = m; });
+      _scrollChatToBottom();
+    } catch (_) {
+      // Silently ignore polling failures.
+    }
+  }
+
+  void _scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Future<void> _sendMessage() async {
+    final api = widget.api;
+    final id = int.tryParse(order.id);
+    final text = _chatController.text.trim();
+    if (api == null || id == null || text.isEmpty || _sendingMessage) return;
+    setState(() => _sendingMessage = true);
+    _chatController.clear();
+    try {
+      await api.sendMessage(id, text);
+      await _refreshTrackingAndMessages();
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _sendingMessage = false);
+    }
+  }
+
+  Future<void> _openMap() async {
+    final t = tracking;
+    if (t == null || !t.hasLiveLocation) return;
+    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}');
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open maps.')));
+    }
+  }
+
+  Future<void> _callDeliveryPerson() async {
+    final phone = tracking?.deliveryPersonPhone;
+    if (phone == null || phone.isEmpty) return;
+    final uri = Uri.parse('tel:$phone');
+    final launched = await launchUrl(uri);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open dialer.')));
+    }
   }
 
   @override
@@ -1776,6 +1855,7 @@ class _TrackingPageState extends State<TrackingPage> {
     const steps = ['PENDING', 'ADDRESS_CONFIRMED', 'PAYMENT_PENDING', 'CONFIRMED', 'PACKING', 'OUT_FOR_DELIVERY', 'DELIVERED'];
     final current = steps.indexOf(order.status);
     final effectiveIndex = current < 0 ? 0 : current;
+    final t = tracking;
     return Scaffold(
       appBar: AppBar(title: Text('Order #' + order.id), actions: [IconButton(onPressed: loading ? null : _refresh, icon: const Icon(Icons.refresh))]),
       body: ListView(padding: const EdgeInsets.all(24), children: [
@@ -1786,6 +1866,84 @@ class _TrackingPageState extends State<TrackingPage> {
           subtitle: i == effectiveIndex ? const Text('Current status') : null,
         ),
         Card(child: ListTile(leading: const Icon(Icons.local_shipping_outlined), title: const Text('Delivery Address'), subtitle: Text(order.address))),
+        if (t != null && t.deliveryPersonName != null) ...[
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Your Delivery Partner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 10),
+                Row(children: [
+                  const CircleAvatar(child: Icon(Icons.delivery_dining)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(t.deliveryPersonName!, style: const TextStyle(fontWeight: FontWeight.w700))),
+                  IconButton(onPressed: _callDeliveryPerson, icon: const Icon(Icons.call, color: Color(0xFF168447))),
+                ]),
+                if (t.hasLiveLocation) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    t.updatedAt != null ? 'Location updated ${_formatDate(t.updatedAt!)}' : 'Live location available',
+                    style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map_outlined), label: const Text('View Live Location on Map')),
+                ] else
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text('Waiting for the delivery partner to share their location.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+                  ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Chat with Delivery Partner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 220,
+                  child: messages.isEmpty
+                      ? const Center(child: Text('No messages yet.', style: TextStyle(color: Colors.black45)))
+                      : ListView.builder(
+                          controller: _chatScrollController,
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final m = messages[index];
+                            return Align(
+                              alignment: m.fromCustomer ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                constraints: const BoxConstraints(maxWidth: 260),
+                                decoration: BoxDecoration(
+                                  color: m.fromCustomer ? const Color(0xFF168447) : const Color(0xFFEAF6EA),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(m.message, style: TextStyle(color: m.fromCustomer ? Colors.white : Colors.black87)),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _chatController,
+                      decoration: const InputDecoration(hintText: 'Message your delivery partner…'),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(onPressed: _sendingMessage ? null : _sendMessage, icon: const Icon(Icons.send)),
+                ]),
+              ]),
+            ),
+          ),
+        ],
       ]),
     );
   }

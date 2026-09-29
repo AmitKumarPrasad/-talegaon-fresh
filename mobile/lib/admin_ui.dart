@@ -350,6 +350,40 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
     }
   }
 
+  Future<void> _assignDelivery(AdminOrder order) async {
+    final nameController = TextEditingController(text: order.deliveryPersonName ?? '');
+    final phoneController = TextEditingController(text: order.deliveryPersonPhone ?? '');
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Assign Delivery — Order #${order.orderId}'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Delivery person name')),
+          TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Delivery person phone')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Assign & Notify')),
+        ],
+      ),
+    );
+    if (result != true) return;
+    if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter both a name and phone number.')));
+      return;
+    }
+    try {
+      final link = await widget.repo.assignDelivery(order.orderId, nameController.text.trim(), phoneController.text.trim());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(link != null ? 'Delivery partner notified with tracking link.' : 'Delivery partner assigned.')));
+      _load();
+    } on AdminApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Column(
     children: [
@@ -398,6 +432,22 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text('Delivery: ${order.address}', style: const TextStyle(color: Colors.black54)),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          order.deliveryPersonName != null
+                                              ? 'Assigned to: ${order.deliveryPersonName} (${order.deliveryPersonPhone})'
+                                              : 'No delivery partner assigned yet.',
+                                          style: TextStyle(color: order.deliveryPersonName != null ? const Color(0xFF168447) : Colors.black45, fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: TextButton.icon(
+                                            onPressed: () => _assignDelivery(order),
+                                            icon: const Icon(Icons.local_shipping_outlined, size: 18),
+                                            label: Text(order.deliveryPersonName != null ? 'Reassign Delivery' : 'Assign Delivery'),
+                                          ),
+                                        ),
                                         const SizedBox(height: 8),
                                         for (final item in order.items)
                                           Padding(
