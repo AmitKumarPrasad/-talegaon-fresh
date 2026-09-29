@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'auth_api.dart';
 import 'customer_api.dart';
@@ -265,6 +266,7 @@ class OrderRecord {
     required this.createdAt,
     this.status = "CONFIRMED",
     this.items = const [],
+    this.paymentLinkUrl,
   });
 
   final String id;
@@ -274,6 +276,7 @@ class OrderRecord {
   final String status;
   final DateTime createdAt;
   final List<OrderLine> items;
+  final String? paymentLinkUrl;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -308,6 +311,7 @@ class OrderRecord {
       createdAt: DateTime.now(),
       status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
+      paymentLinkUrl: value['payment_link_url'] is String ? value['payment_link_url'] as String : null,
     );
   }
 
@@ -560,12 +564,16 @@ class _AppShellState extends State<AppShell> {
     await prefs.setString(_cartStorageKey, jsonEncode(data));
   }
 
-  Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
+  Future<OrderRecord> _completeOrder(String payment, CustomerAddress address, double total) async {
     if (_useRemoteCustomerApi) {
       final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
       setState(() { orders.insert(0, created); cart.clear(); });
       await customerApi.clearCart();
-      return created.id;
+      if (payment == 'UPI') {
+        final paymentUrl = await customerApi.createPaymentLink(int.parse(created.id));
+        return OrderRecord(id: created.id, total: created.total, payment: created.payment, address: created.address, createdAt: created.createdAt, status: created.status, items: created.items, paymentLinkUrl: paymentUrl);
+      }
+      return created;
     }
     final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
     final items = cart.map((item) => OrderLine(name: item.product.name, unit: item.product.unit, price: item.product.price, quantity: item.quantity)).toList();
@@ -576,7 +584,7 @@ class _AppShellState extends State<AppShell> {
     });
     await _persistCart();
     await _persistOrders();
-    return orderId;
+    return order;
   }
 
   Future<void> _signOut() async {
@@ -1016,7 +1024,7 @@ class CartPage extends StatelessWidget {
   final List<CartItem> cart;
   final VoidCallback onChanged;
   final List<CustomerAddress> addresses;
-  final Future<String> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
 
   double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
@@ -1148,9 +1156,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
       const SizedBox(height: 18),
       FilledButton(
         onPressed: widget.addresses.isEmpty ? null : () async {
-          final orderId = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
-          if (!context.mounted) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(orderId: orderId, total: widget.total)));
+          try {
+            final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
+            if (!context.mounted) return;
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order)));
+          } on CustomerApiException catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+          } catch (_) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed, but payment setup could not be completed. Please check My Orders.')));
+          }
         },
         child: const Text('Place Order'),
       ),
@@ -1159,23 +1175,36 @@ class _CheckoutPageState extends State<CheckoutPage> {
 }
 
 class OrderSuccessPage extends StatelessWidget {
-  const OrderSuccessPage({super.key, required this.orderId, required this.total});
-  final String orderId;
-  final double total;
+  const OrderSuccessPage({super.key, required this.order});
+  final OrderRecord order;
+
+  Future<void> _pay(BuildContext context) async {
+    final url = order.paymentLinkUrl;
+    if (url == null) return;
+    final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the payment page.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Center(child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const CircleAvatar(radius: 42, backgroundColor: Color(0xFFDDF3E4), child: Icon(Icons.check, size: 48, color: Color(0xFF168447))),
+        Icon(order.paymentLinkUrl == null ? Icons.check_circle : Icons.payment, size: 56, color: const Color(0xFF168447)),
         const SizedBox(height: 22),
-        const Text('Order Placed Successfully!', textAlign: TextAlign.center, style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+        Text(order.paymentLinkUrl == null ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        const Text('Thank you for shopping with Talegaon Fresh.', textAlign: TextAlign.center),
+        Text(order.paymentLinkUrl == null ? 'Thank you for shopping with Talegaon Fresh.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
-        Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#$orderId'), trailing: Text('₹${total.toStringAsFixed(0)}'))),
-        const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
+        Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
+        if (order.paymentLinkUrl != null) ...[
+          const SizedBox(height: 18),
+          FilledButton.icon(onPressed: () => _pay(context), icon: const Icon(Icons.open_in_new), label: const Text('Pay with UPI')),
+        ],
+        const SizedBox(height: 12),
+        OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
       ]),
     )),
   );
