@@ -299,7 +299,7 @@ class OrderRecord {
       }
     }
     return OrderRecord(
-      id: '\${value['order_id']}',
+      id: '${value['order_id']}',
       total: value['total'] is num ? (value['total'] as num).toDouble() : 0,
       payment: value['payment_method'] is String ? value['payment_method'] : '',
       address: value['address'] is String ? value['address'] : '',
