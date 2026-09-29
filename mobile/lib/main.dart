@@ -823,6 +823,7 @@ class _AppShellState extends State<AppShell> {
         addresses: addresses,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
+        onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
       ),
     ];
@@ -1665,12 +1666,17 @@ class FavoritesPage extends StatelessWidget {
 }
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, this.onSignOut});
+  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.onSignOut});
   final CustomerSession session;
   final List<CustomerAddress> addresses;
   final VoidCallback onManageAddresses;
   final VoidCallback onManageFavorites;
+  final VoidCallback onViewOrders;
   final VoidCallback? onSignOut;
+
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
+  }
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -1703,7 +1709,11 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
       ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
-        .map((x) => Card(child: ListTile(title: Text(x), trailing: const Icon(Icons.chevron_right)))),
+        .map((x) => Card(child: ListTile(
+          title: Text(x),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: x == 'My Orders' ? onViewOrders : () => _showComingSoon(context, x),
+        ))),
       const SizedBox(height: 10),
       OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
     ],
