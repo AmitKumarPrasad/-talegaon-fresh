@@ -677,7 +677,7 @@ class _AppShellState extends State<AppShell> {
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
-      OrdersPage(orders: orders),
+      OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
