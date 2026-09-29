@@ -18,6 +18,8 @@ jobs:
     defaults:
       run:
         working-directory: mobile
+    env:
+      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,11 +38,10 @@ jobs:
         run: flutter test
       - name: Generate Android platform files
         run: flutter create . --platforms android --project-name talegaon_fresh --org com.talegaonfresh
-
       - name: Build APK
         run: flutter build apk --debug
       - name: Configure Android release signing
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_ANDROID_SIGNING == 'true'
         working-directory: mobile
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -60,23 +61,19 @@ jobs:
           sed -i '1i import java.io.FileInputStream\nimport java.util.Properties\n\nval keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) { keystoreProperties.load(FileInputStream(keystorePropertiesFile)) }\n' android/app/build.gradle.kts
           sed -i '/    buildTypes {/i\    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties.getProperty("keyAlias")\n            keyPassword = keystoreProperties.getProperty("keyPassword")\n            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }\n            storePassword = keystoreProperties.getProperty("storePassword")\n        }\n    }' android/app/build.gradle.kts
           sed -i 's/signingConfig = signingConfigs.getByName("debug")/signingConfig = signingConfigs.getByName("release")/' android/app/build.gradle.kts
-
       - name: Build release APK
         run: flutter build apk --release
-
       - name: Build signed release app bundle
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_ANDROID_SIGNING == 'true'
         run: flutter build appbundle --release
-
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: talegaon-fresh-release-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-
       - name: Upload signed release AAB artifact
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_ANDROID_SIGNING == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: talegaon-fresh-release-aab
