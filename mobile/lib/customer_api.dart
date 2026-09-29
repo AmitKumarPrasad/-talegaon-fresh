@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'main.dart';
@@ -74,8 +75,8 @@ class HttpCustomerRepository {
     for (final row in rows) {
       if (row is! Map || row['name'] is! String || row['unit'] is! String || row['price'] is! num || row['quantity'] is! num) continue;
       final name = row['name'] as String;
-      final product = products.where((p) => p.name.toLowerCase() == name.toLowerCase()).firstOrNull ??
-          Product(name: name, unit: row['unit'] as String, price: (row['price'] as num).toDouble(), icon: Icons.local_grocery_store);
+      final matches = products.where((p) => p.name.toLowerCase() == name.toLowerCase()).toList();
+      final product = (matches.isNotEmpty ? matches.first : null) ?? Product(name: name, unit: row['unit'] as String, price: (row['price'] as num).toDouble(), icon: Icons.local_grocery_store);
       result.add(CartItem(product, (row['quantity'] as num).toInt()));
     }
     return result;
