@@ -649,7 +649,7 @@ class _AppShellState extends State<AppShell> {
       ProfilePage(
         session: widget.session,
         addresses: addresses,
-        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () { setState(() {}); _persistAddresses(); }))),
+        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: customerApi, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
         onSignOut: _signOut,
       ),
@@ -1417,9 +1417,10 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
 }
 
 class AddressBookPage extends StatefulWidget {
-  const AddressBookPage({super.key, required this.addresses, required this.onChanged});
+  const AddressBookPage({super.key, required this.addresses, required this.onChanged, this.api});
   final List<CustomerAddress> addresses;
   final VoidCallback onChanged;
+  final HttpCustomerRepository? api;
 
   @override
   State<AddressBookPage> createState() => _AddressBookPageState();
@@ -1433,13 +1434,16 @@ class _AddressBookPageState extends State<AddressBookPage> {
     );
 
     if (!mounted || result == null) return;
-    setState(() {
-      if (index == null) {
-        widget.addresses.add(result);
-      } else {
-        widget.addresses[index] = result;
-      }
-    });
+    try {
+      final saved = widget.api == null ? result : (index == null ? await widget.api!.createAddress(result) : await widget.api!.updateAddress(result));
+      if (!mounted) return;
+      setState(() {
+        if (index == null) widget.addresses.add(saved); else widget.addresses[index] = saved;
+      });
+      widget.onChanged();
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
     widget.onChanged();
   }
 
@@ -1456,8 +1460,15 @@ class _AddressBookPageState extends State<AddressBookPage> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => widget.addresses.removeAt(index));
-    widget.onChanged();
+    try {
+      final id = widget.addresses[index].id;
+      if (widget.api != null && id != null) await widget.api!.deleteAddress(id);
+      if (!mounted) return;
+      setState(() => widget.addresses.removeAt(index));
+      widget.onChanged();
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   @override
