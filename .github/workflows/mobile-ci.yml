@@ -36,8 +36,6 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
-      - name: Generate Android platform files
-        run: flutter create . --platforms android --project-name talegaon_fresh --org com.talegaonfresh
       - name: Build APK
         run: flutter build apk --debug
       - name: Configure Android release signing
