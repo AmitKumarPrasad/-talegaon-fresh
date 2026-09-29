@@ -114,6 +114,9 @@ void main() {
     final repository = HttpCustomerRepository(
       token: 'jwt-token', client: client, baseUrl: 'https://example.test',
     );
+    const product = Product(
+      name: 'Tomato', unit: 'kg', price: 40, icon: Icons.local_grocery_store,
+    );
     final order = await repository.createOrder(
       [CartItem(product, 3)], address, 'COD',
     );
