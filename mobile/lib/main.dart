@@ -285,8 +285,27 @@ class OrderRecord {
 
   static OrderRecord fromApiJson(Map value) {
     final rawItems = value['items'];
-    final items = rawItems is List ? rawItems.map((item) => item is Map ? OrderLine(name: item['name'] is String ? item['name'] : '', unit: item['unit'] is String ? item['unit'] : '', price: item['unit_price'] is num ? (item['unit_price'] as num).toDouble() : 0, quantity: item['quantity'] is num ? (item['quantity'] as num).toInt() : 0)).where((x) => x.name.isNotEmpty && x.quantity > 0).toList() : <OrderLine>[];
-    return OrderRecord(id: '${value['order_id']}', total: value['total'] is num ? (value['total'] as num).toDouble() : 0, payment: value['payment_method'] is String ? value['payment_method'] : '', address: value['address'] is String ? value['address'] : '', createdAt: DateTime.now(), items: items);
+    final items = <OrderLine>[];
+    if (rawItems is List) {
+      for (final raw in rawItems) {
+        if (raw is! Map) continue;
+        final name = raw['name'];
+        final unit = raw['unit'];
+        final price = raw['unit_price'];
+        final quantity = raw['quantity'];
+        if (name is String && unit is String && price is num && quantity is num && quantity > 0) {
+          items.add(OrderLine(name: name, unit: unit, price: price.toDouble(), quantity: quantity.toInt()));
+        }
+      }
+    }
+    return OrderRecord(
+      id: '\${value['order_id']}',
+      total: value['total'] is num ? (value['total'] as num).toDouble() : 0,
+      payment: value['payment_method'] is String ? value['payment_method'] : '',
+      address: value['address'] is String ? value['address'] : '',
+      createdAt: DateTime.now(),
+      items: items,
+    );
   }
 
   static OrderRecord? fromJson(dynamic value) {
