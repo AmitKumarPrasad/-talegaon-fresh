@@ -71,23 +71,27 @@ No OTPs, API keys, or JWT secrets are stored in the mobile application. The auth
 
 ## Customer address management
 
-The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. The current implementation keeps the address book in local mobile storage. An injectable HTTP Address API repository is now defined for the production integration. It uses `GET/POST /customers/me/addresses` and `PUT/DELETE /customers/me/addresses/{id}` with the customer Bearer token. The UI remains on local storage until those backend endpoints are deployed and the server-side address identifier is available.\n\n## Customer order API\n\nAn injectable HTTP order repository is now defined for production integration. It supports `POST /customers/me/orders` for authenticated order creation and `GET /customers/me/orders` for customer order history, using the customer Bearer token. The current checkout and order history UI remains local until the backend endpoints are deployed and server-side order IDs are available. A `401 Unauthorized` response is mapped to `OrderApiException('AUTH_UNAUTHORIZED')` so the app can reuse the existing session-expiry handling when the repository is wired into the UI.
+The authenticated customer can open **My Addresses** from Profile to add, edit, and delete saved delivery addresses. When a JWT session is active, the UI uses `GET/POST /customers/me/addresses` and `PUT/DELETE /customers/me/addresses/{id}` with the customer Bearer token. Address edits preserve the server-side address ID and default-address flag. Demo/local sessions continue to use local storage.
 
+## Customer order API
+
+Authenticated sessions use the server-side customer order APIs for checkout and order history: `POST /customers/me/orders`, `GET /customers/me/orders`, and `GET /customers/me/orders/{id}`. The server-side order ID is retained for payment and tracking. UPI checkout calls `POST /customers/me/orders/{id}/payment-link` and opens the returned Razorpay payment link. Order tracking and order history can refresh status from the backend.
 
 ## Customer cart API
 
-An injectable HTTP cart repository is now defined for production integration. It supports:
-- `GET /customers/me/cart` to load the authenticated customer's server-side cart
-- `PUT /customers/me/cart` to replace the server-side cart contents
-- `DELETE /customers/me/cart` to clear the server-side cart
-- Bearer JWT authentication on every request when a session token is available
-- `401 Unauthorized` mapped to `CartApiException('AUTH_UNAUTHORIZED')`
+Authenticated sessions use the server-side cart through `GET /customers/me/cart`, `PUT /customers/me/cart`, and `DELETE /customers/me/cart`. Cart synchronization failures are surfaced in the cart UI with a retry action rather than silently replacing the server cart with stale local data. A `401 Unauthorized` response ends the customer session.
 
-The current checkout/cart UI remains local until the backend cart endpoints are deployed and server-side inventory/pricing rules are ready. The API boundary intentionally does not switch the UI to remote cart synchronization yet.
+## Production customer flow
 
-## Customer cart persistence
+1. Sign in with remote OTP authentication.
+2. Load products and the authenticated customer cart.
+3. Add or update a saved delivery address.
+4. Create an order through the customer API.
+5. For UPI, create a Razorpay payment link and complete payment on the hosted page.
+6. Refresh order status from the backend after payment/webhook processing.
+7. View the server-side order history and tracking status.
 
-The authenticated customer cart is persisted locally per mobile number, so cart items survive app restarts. Signing out clears that customer's local cart. This remains the active UI storage until server-side cart synchronization is enabled.
+The deployed backend must have its authentication, database, and Razorpay webhook configuration completed before enabling customer traffic.
 
 ## Product details
 
