@@ -411,6 +411,8 @@ class _AppShellState extends State<AppShell> {
   ];
   final orders = <OrderRecord>[];
   late final HttpCustomerRepository customerApi;
+
+  bool get _useRemoteCustomerApi => (widget.session.token ?? '').split('.').length == 3;
   final favorites = <String>{};
 
   @override
@@ -430,7 +432,7 @@ class _AppShellState extends State<AppShell> {
   String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
 
   Future<void> _loadCart() async {
-    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+    if (_useRemoteCustomerApi) {
       try {
         final remote = await customerApi.getCart(products);
         if (mounted) setState(() => cart..clear()..addAll(remote));
@@ -470,7 +472,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadAddresses() async {
-    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+    if (_useRemoteCustomerApi) {
       try { final remote = await customerApi.getAddresses(); if (mounted) setState(() => addresses..clear()..addAll(remote)); return; }
       catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
     }
@@ -513,7 +515,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadOrders() async {
-    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+    if (_useRemoteCustomerApi) {
       try { final remote = await customerApi.getOrders(); if (mounted) setState(() => orders..clear()..addAll(remote)); return; }
       catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
     }
@@ -536,7 +538,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistCart() async {
-    if (widget.session.token != null && widget.session.token!.isNotEmpty) { try { await customerApi.replaceCart(cart); return; } catch (_) {} }
+    if (_useRemoteCustomerApi) { try { await customerApi.replaceCart(cart); return; } catch (_) {} }
     final prefs = await SharedPreferences.getInstance();
     final data = cart.map((item) => <String, dynamic>{
       'name': item.product.name,
