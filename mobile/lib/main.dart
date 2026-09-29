@@ -550,7 +550,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
-    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+    if (_useRemoteCustomerApi) {
       final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
       setState(() { orders.insert(0, created); cart.clear(); });
       await customerApi.clearCart();
