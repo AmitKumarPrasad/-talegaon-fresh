@@ -32,6 +32,11 @@ class HttpCustomerRepository {
         'Authorization': 'Bearer $token',
       };
 
+  Future<void> logout() async {
+    final response = await _client.post(Uri.parse("$_baseUrl/auth/logout"), headers: _headers);
+    _success(response);
+  }
+
   Future<List<CustomerAddress>> getAddresses() async {
     final response = await _client.get(Uri.parse('$_baseUrl/customers/me/addresses'), headers: _headers);
     final body = _success(response);
