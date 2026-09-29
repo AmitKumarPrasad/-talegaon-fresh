@@ -60,6 +60,25 @@ String? _imageUrlForProduct(String name) => _productImageUrls[name.toLowerCase()
 // Drop a file at mobile/assets/images/<key>.png to enable it, e.g. "tomato.png".
 const Map<String, String> _productAssetPaths = {
   'tomato': 'assets/images/tomato.png',
+  'potato': 'assets/images/potato.png',
+  'onion': 'assets/images/onion.png',
+  'carrot': 'assets/images/carrot.png',
+  'capsicum': 'assets/images/capsicum.png',
+  'cabbage': 'assets/images/cabbage.png',
+  'cauliflower': 'assets/images/cauliflower.png',
+  'ladyfinger': 'assets/images/ladyfinger.png',
+  'green beans': 'assets/images/green_beans.png',
+  'spinach': 'assets/images/spinach.png',
+  'coriander': 'assets/images/coriander.png',
+  'green chilli': 'assets/images/green_chilli.png',
+  'ginger': 'assets/images/ginger.png',
+  'garlic': 'assets/images/garlic.png',
+  'banana': 'assets/images/banana.png',
+  'apple': 'assets/images/apple.png',
+  'orange': 'assets/images/orange.png',
+  'grapes': 'assets/images/grapes.png',
+  'pomegranate': 'assets/images/pomegranate.png',
+  'papaya': 'assets/images/papaya.png',
 };
 
 String? _assetPathForProduct(String name) => _productAssetPaths[name.toLowerCase()];
