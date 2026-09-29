@@ -309,7 +309,7 @@ class OrderRecord {
       total: value['total'] is num ? (value['total'] as num).toDouble() : 0,
       payment: value['payment_method'] is String ? value['payment_method'] : '',
       address: value['address'] is String ? value['address'] : '',
-      createdAt: DateTime.now(),
+      createdAt: DateTime.tryParse(value['created_at'] is String ? value['created_at'] as String : '') ?? DateTime.now(),
       status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
       paymentLinkUrl: value['payment_link_url'] is String ? value['payment_link_url'] as String : null,
