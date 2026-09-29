@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_api.dart';
+import 'customer_api.dart';
 import 'product_api.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
 AuthRepository _createAuthRepository() =>
-    const String.fromEnvironment('AUTH_MODE', defaultValue: 'demo') == 'remote'
+    const String.fromEnvironment('AUTH_MODE', defaultValue: 'remote') == 'remote'
         ? HttpAuthRepository()
         : const DemoAuthRepository();
 
@@ -176,18 +177,39 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class CustomerAddress {
-  const CustomerAddress({required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = ''});
+  const CustomerAddress({this.id, required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = '', this.isDefault = false});
+  final int? id;
   final String label, fullAddress, city, pincode, landmark;
+  final bool isDefault;
 
   String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
 
+  Map<String, dynamic> toApiJson() => {
+    'label': label,
+    'address': fullAddress + (landmark.isEmpty ? '' : ', ' + landmark),
+    'city': city,
+    'pincode': pincode,
+    'is_default': isDefault,
+  };
+
   Map<String, dynamic> toJson() => {
+    'id': id,
     'label': label,
     'fullAddress': fullAddress,
     'city': city,
     'pincode': pincode,
     'landmark': landmark,
   };
+
+  static CustomerAddress? fromApiJson(dynamic value) {
+    if (value is! Map) return null;
+    final label = value['label'];
+    final address = value['address'];
+    final city = value['city'];
+    final pincode = value['pincode'];
+    if (label is! String || address is! String || city is! String || pincode is! String) return null;
+    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: address, city: city, pincode: pincode, isDefault: value['is_default'] == true);
+  }
 
   static CustomerAddress? fromJson(dynamic value) {
     if (value is! Map) return null;
@@ -197,7 +219,7 @@ class CustomerAddress {
     final pincode = value['pincode'];
     final landmark = value['landmark'];
     if (label is! String || fullAddress is! String || city is! String || pincode is! String) return null;
-    return CustomerAddress(label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '');
+    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '', isDefault: value['isDefault'] == true);
   }
 }
 
@@ -257,8 +279,34 @@ class OrderRecord {
     'payment': payment,
     'address': address,
     'createdAt': createdAt.toIso8601String(),
+    'status': 'CONFIRMED',
     'items': items.map((item) => item.toJson()).toList(),
   };
+
+  static OrderRecord fromApiJson(Map value) {
+    final rawItems = value['items'];
+    final items = <OrderLine>[];
+    if (rawItems is List) {
+      for (final raw in rawItems) {
+        if (raw is! Map) continue;
+        final name = raw['name'];
+        final unit = raw['unit'];
+        final price = raw['unit_price'];
+        final quantity = raw['quantity'];
+        if (name is String && unit is String && price is num && quantity is num && quantity > 0) {
+          items.add(OrderLine(name: name, unit: unit, price: price.toDouble(), quantity: quantity.toInt()));
+        }
+      }
+    }
+    return OrderRecord(
+      id: '${value['order_id']}',
+      total: value['total'] is num ? (value['total'] as num).toDouble() : 0,
+      payment: value['payment_method'] is String ? value['payment_method'] : '',
+      address: value['address'] is String ? value['address'] : '',
+      createdAt: DateTime.now(),
+      items: items,
+    );
+  }
 
   static OrderRecord? fromJson(dynamic value) {
     if (value is! Map) return null;
@@ -362,11 +410,15 @@ class _AppShellState extends State<AppShell> {
     const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
   ];
   final orders = <OrderRecord>[];
+  late final HttpCustomerRepository customerApi;
+
+  bool get _useRemoteCustomerApi => (widget.session.token ?? '').split('.').length == 3;
   final favorites = <String>{};
 
   @override
   void initState() {
     super.initState();
+    customerApi = HttpCustomerRepository(token: widget.session.token ?? '');
     _loadProducts();
     _loadCart();
     _loadOrders();
@@ -380,6 +432,13 @@ class _AppShellState extends State<AppShell> {
   String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
 
   Future<void> _loadCart() async {
+    if (_useRemoteCustomerApi) {
+      try {
+        final remote = await customerApi.getCart(products);
+        if (mounted) setState(() => cart..clear()..addAll(remote));
+        return;
+      } catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_cartStorageKey);
     if (raw == null || !mounted) return;
@@ -413,6 +472,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadAddresses() async {
+    if (_useRemoteCustomerApi) {
+      try { final remote = await customerApi.getAddresses(); if (mounted) setState(() => addresses..clear()..addAll(remote)); return; }
+      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_addressesStorageKey);
     if (raw == null || !mounted) return;
@@ -452,6 +515,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadOrders() async {
+    if (_useRemoteCustomerApi) {
+      try { final remote = await customerApi.getOrders(); if (mounted) setState(() => orders..clear()..addAll(remote)); return; }
+      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_ordersStorageKey);
     if (raw == null || !mounted) return;
@@ -471,6 +538,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistCart() async {
+    if (_useRemoteCustomerApi) { try { await customerApi.replaceCart(cart); return; } catch (_) {} }
     final prefs = await SharedPreferences.getInstance();
     final data = cart.map((item) => <String, dynamic>{
       'name': item.product.name,
@@ -482,6 +550,12 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
+    if (_useRemoteCustomerApi) {
+      final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
+      setState(() { orders.insert(0, created); cart.clear(); });
+      await customerApi.clearCart();
+      return created.id;
+    }
     final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
     final items = cart.map((item) => OrderLine(name: item.product.name, unit: item.product.unit, price: item.product.price, quantity: item.quantity)).toList();
     final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now(), items: items);
@@ -596,7 +670,7 @@ class _AppShellState extends State<AppShell> {
       ProfilePage(
         session: widget.session,
         addresses: addresses,
-        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, onChanged: () { setState(() {}); _persistAddresses(); }))),
+        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
         onSignOut: _signOut,
       ),
@@ -1364,9 +1438,10 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
 }
 
 class AddressBookPage extends StatefulWidget {
-  const AddressBookPage({super.key, required this.addresses, required this.onChanged});
+  const AddressBookPage({super.key, required this.addresses, required this.onChanged, this.api});
   final List<CustomerAddress> addresses;
   final VoidCallback onChanged;
+  final HttpCustomerRepository? api;
 
   @override
   State<AddressBookPage> createState() => _AddressBookPageState();
@@ -1380,13 +1455,16 @@ class _AddressBookPageState extends State<AddressBookPage> {
     );
 
     if (!mounted || result == null) return;
-    setState(() {
-      if (index == null) {
-        widget.addresses.add(result);
-      } else {
-        widget.addresses[index] = result;
-      }
-    });
+    try {
+      final saved = widget.api == null ? result : (index == null ? await widget.api!.createAddress(result) : await widget.api!.updateAddress(result));
+      if (!mounted) return;
+      setState(() {
+        if (index == null) widget.addresses.add(saved); else widget.addresses[index] = saved;
+      });
+      widget.onChanged();
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
     widget.onChanged();
   }
 
@@ -1403,8 +1481,15 @@ class _AddressBookPageState extends State<AddressBookPage> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => widget.addresses.removeAt(index));
-    widget.onChanged();
+    try {
+      final id = widget.addresses[index].id;
+      if (widget.api != null && id != null) await widget.api!.deleteAddress(id);
+      if (!mounted) return;
+      setState(() => widget.addresses.removeAt(index));
+      widget.onChanged();
+    } on CustomerApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   @override
