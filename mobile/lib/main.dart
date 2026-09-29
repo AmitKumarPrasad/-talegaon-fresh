@@ -1218,7 +1218,7 @@ class OrderDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Order #' + order.id), actions: [IconButton(onPressed: loading ? null : _refresh, icon: const Icon(Icons.refresh))]),
+    appBar: AppBar(title: Text('Order #' + order.id)),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -1313,8 +1313,9 @@ class _TrackingPageState extends State<TrackingPage> {
     final current = steps.indexOf(order.status);
     final effectiveIndex = current < 0 ? 0 : current;
     return Scaffold(
-      appBar: AppBar(title: Text('Order #' + order.id)),
+      appBar: AppBar(title: Text('Order #' + order.id), actions: [IconButton(onPressed: loading ? null : _refresh, icon: const Icon(Icons.refresh))]),
       body: ListView(padding: const EdgeInsets.all(24), children: [
+        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(error!, style: const TextStyle(color: Colors.red))),
         for (var i = 0; i < steps.length; i++) ListTile(
           leading: Icon(i <= effectiveIndex ? Icons.check_circle : Icons.radio_button_unchecked, color: i <= effectiveIndex ? const Color(0xFF168447) : Colors.black26),
           title: Text(steps[i], style: TextStyle(fontWeight: i == effectiveIndex ? FontWeight.w800 : FontWeight.w500)),
