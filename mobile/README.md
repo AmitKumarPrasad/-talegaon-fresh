@@ -20,7 +20,7 @@ WhatsApp remains an optional channel and is not required for the mobile app.
 - Customer identity
 - Cart and order creation
 - Address APIs
-- Razorpay payment flow
+- Razorpay payment flow via authenticated customer payment-link API
 - Order tracking/status
 - Loading/error/empty states
 
