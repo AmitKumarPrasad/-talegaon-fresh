@@ -56,6 +56,14 @@ const Map<String, String> _productImageUrls = {
 
 String? _imageUrlForProduct(String name) => _productImageUrls[name.toLowerCase()];
 
+// Bundled brand photos take priority over the network fallback map above.
+// Drop a file at mobile/assets/images/<key>.png to enable it, e.g. "tomato.png".
+const Map<String, String> _productAssetPaths = {
+  'tomato': 'assets/images/tomato.png',
+};
+
+String? _assetPathForProduct(String name) => _productAssetPaths[name.toLowerCase()];
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository()});
@@ -1053,22 +1061,39 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final assetPath = _assetPathForProduct(product.name);
     final url = product.imageUrl;
+    Widget image;
+    if (assetPath != null) {
+      image = Image.asset(
+        assetPath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => url == null
+            ? Icon(product.icon, size: size, color: const Color(0xFF2E9B55))
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
+              ),
+      );
+    } else if (url != null) {
+      image = Image.network(
+        url,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) => progress == null
+            ? child
+            : Center(child: SizedBox(width: size * 0.4, height: size * 0.4, child: const CircularProgressIndicator(strokeWidth: 2))),
+        errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
+      );
+    } else {
+      image = Icon(product.icon, size: size, color: const Color(0xFF2E9B55));
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: Container(
         width: double.infinity,
         color: const Color(0xFFEAF6EA),
-        child: url == null
-            ? Icon(product.icon, size: size, color: const Color(0xFF2E9B55))
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) => progress == null
-                    ? child
-                    : Center(child: SizedBox(width: size * 0.4, height: size * 0.4, child: const CircularProgressIndicator(strokeWidth: 2))),
-                errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
-              ),
+        child: image,
       ),
     );
   }
