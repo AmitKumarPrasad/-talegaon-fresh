@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_api.dart';
+import 'customer_api.dart';
 import 'product_api.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
@@ -176,18 +177,39 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class CustomerAddress {
-  const CustomerAddress({required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = ''});
+  const CustomerAddress({this.id, required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = '', this.isDefault = false});
+  final int? id;
   final String label, fullAddress, city, pincode, landmark;
+  final bool isDefault;
 
   String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
 
+  Map<String, dynamic> toApiJson() => {
+    'label': label,
+    'address': fullAddress + (landmark.isEmpty ? '' : ', ' + landmark),
+    'city': city,
+    'pincode': pincode,
+    'is_default': isDefault,
+  };
+
   Map<String, dynamic> toJson() => {
+    'id': id,
     'label': label,
     'fullAddress': fullAddress,
     'city': city,
     'pincode': pincode,
     'landmark': landmark,
   };
+
+  static CustomerAddress? fromApiJson(dynamic value) {
+    if (value is! Map) return null;
+    final label = value['label'];
+    final address = value['address'];
+    final city = value['city'];
+    final pincode = value['pincode'];
+    if (label is! String || address is! String || city is! String || pincode is! String) return null;
+    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: address, city: city, pincode: pincode, isDefault: value['is_default'] == true);
+  }
 
   static CustomerAddress? fromJson(dynamic value) {
     if (value is! Map) return null;
@@ -197,7 +219,7 @@ class CustomerAddress {
     final pincode = value['pincode'];
     final landmark = value['landmark'];
     if (label is! String || fullAddress is! String || city is! String || pincode is! String) return null;
-    return CustomerAddress(label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '');
+    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '', isDefault: value['isDefault'] == true);
   }
 }
 
@@ -257,8 +279,15 @@ class OrderRecord {
     'payment': payment,
     'address': address,
     'createdAt': createdAt.toIso8601String(),
+    'status': 'CONFIRMED',
     'items': items.map((item) => item.toJson()).toList(),
   };
+
+  static OrderRecord fromApiJson(Map value) {
+    final rawItems = value['items'];
+    final items = rawItems is List ? rawItems.map((item) => item is Map ? OrderLine(name: item['name'] is String ? item['name'] : '', unit: item['unit'] is String ? item['unit'] : '', price: item['unit_price'] is num ? (item['unit_price'] as num).toDouble() : 0, quantity: item['quantity'] is num ? (item['quantity'] as num).toInt() : 0)).where((x) => x.name.isNotEmpty && x.quantity > 0).toList() : <OrderLine>[];
+    return OrderRecord(id: '${value['order_id']}', total: value['total'] is num ? (value['total'] as num).toDouble() : 0, payment: value['payment_method'] is String ? value['payment_method'] : '', address: value['address'] is String ? value['address'] : '', createdAt: DateTime.now(), items: items);
+  }
 
   static OrderRecord? fromJson(dynamic value) {
     if (value is! Map) return null;
@@ -362,11 +391,13 @@ class _AppShellState extends State<AppShell> {
     const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
   ];
   final orders = <OrderRecord>[];
+  late final HttpCustomerRepository customerApi;
   final favorites = <String>{};
 
   @override
   void initState() {
     super.initState();
+    customerApi = HttpCustomerRepository(token: widget.session.token ?? '');
     _loadProducts();
     _loadCart();
     _loadOrders();
@@ -380,6 +411,13 @@ class _AppShellState extends State<AppShell> {
   String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
 
   Future<void> _loadCart() async {
+    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+      try {
+        final remote = await customerApi.getCart(products);
+        if (mounted) setState(() => cart..clear()..addAll(remote));
+        return;
+      } catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_cartStorageKey);
     if (raw == null || !mounted) return;
@@ -413,6 +451,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadAddresses() async {
+    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+      try { final remote = await customerApi.getAddresses(); if (mounted) setState(() => addresses..clear()..addAll(remote)); return; }
+      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_addressesStorageKey);
     if (raw == null || !mounted) return;
@@ -452,6 +494,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _loadOrders() async {
+    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+      try { final remote = await customerApi.getOrders(); if (mounted) setState(() => orders..clear()..addAll(remote)); return; }
+      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+    }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_ordersStorageKey);
     if (raw == null || !mounted) return;
@@ -471,6 +517,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistCart() async {
+    if (widget.session.token != null && widget.session.token!.isNotEmpty) { try { await customerApi.replaceCart(cart); return; } catch (_) {} }
     final prefs = await SharedPreferences.getInstance();
     final data = cart.map((item) => <String, dynamic>{
       'name': item.product.name,
@@ -482,6 +529,12 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<String> _completeOrder(String payment, CustomerAddress address, double total) async {
+    if (widget.session.token != null && widget.session.token!.isNotEmpty) {
+      final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
+      setState(() { orders.insert(0, created); cart.clear(); });
+      await customerApi.clearCart();
+      return created.id;
+    }
     final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
     final items = cart.map((item) => OrderLine(name: item.product.name, unit: item.product.unit, price: item.product.price, quantity: item.quantity)).toList();
     final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now(), items: items);
