@@ -670,7 +670,7 @@ class _AppShellState extends State<AppShell> {
       ProfilePage(
         session: widget.session,
         addresses: addresses,
-        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: customerApi, onChanged: () { setState(() {}); _persistAddresses(); }))),
+        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
         onSignOut: _signOut,
       ),
