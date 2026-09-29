@@ -263,6 +263,7 @@ class OrderRecord {
     required this.payment,
     required this.address,
     required this.createdAt,
+    this.status = "CONFIRMED",
     this.items = const [],
   });
 
@@ -270,6 +271,7 @@ class OrderRecord {
   final double total;
   final String payment;
   final String address;
+  final String status;
   final DateTime createdAt;
   final List<OrderLine> items;
 
@@ -279,7 +281,7 @@ class OrderRecord {
     'payment': payment,
     'address': address,
     'createdAt': createdAt.toIso8601String(),
-    'status': 'CONFIRMED',
+    'status': status,
     'items': items.map((item) => item.toJson()).toList(),
   };
 
@@ -304,6 +306,7 @@ class OrderRecord {
       payment: value['payment_method'] is String ? value['payment_method'] : '',
       address: value['address'] is String ? value['address'] : '',
       createdAt: DateTime.now(),
+      status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
     );
   }
@@ -674,7 +677,7 @@ class _AppShellState extends State<AppShell> {
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       CartPage(cart: cart, onChanged: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder),
-      OrdersPage(orders: orders),
+      OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
@@ -1179,8 +1182,9 @@ class OrderSuccessPage extends StatelessWidget {
 }
 
 class OrdersPage extends StatelessWidget {
-  const OrdersPage({super.key, required this.orders});
+  const OrdersPage({super.key, required this.orders, this.api});
   final List<OrderRecord> orders;
+  final HttpCustomerRepository? api;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -1200,16 +1204,17 @@ class OrdersPage extends StatelessWidget {
           title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text(order.payment + ' • ₹' + order.total.toStringAsFixed(0)),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order))),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order, api: api))),
         ))),
     ],
   );
 }
 
 class OrderDetailsPage extends StatelessWidget {
-  const OrderDetailsPage({super.key, required this.order});
+  const OrderDetailsPage({super.key, required this.order, this.api});
 
   final OrderRecord order;
+  final HttpCustomerRepository? api;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -1247,7 +1252,7 @@ class OrderDetailsPage extends StatelessWidget {
         )),
         const SizedBox(height: 14),
         FilledButton.icon(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order))),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: api))),
           icon: const Icon(Icons.local_shipping_outlined),
           label: const Text('Track Order'),
         ),
@@ -1265,19 +1270,56 @@ String _formatDate(DateTime value) {
       local.minute.toString().padLeft(2, '0');
 }
 
-class TrackingPage extends StatelessWidget {
-  const TrackingPage({super.key, required this.order});
+class TrackingPage extends StatefulWidget {
+  const TrackingPage({super.key, required this.order, this.api});
   final OrderRecord order;
+  final HttpCustomerRepository? api;
+
+  @override
+  State<TrackingPage> createState() => _TrackingPageState();
+}
+
+class _TrackingPageState extends State<TrackingPage> {
+  late OrderRecord order;
+  bool loading = false;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    order = widget.order;
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final api = widget.api;
+    if (api == null || order.id.isEmpty) return;
+    final id = int.tryParse(order.id);
+    if (id == null) return;
+    setState(() { loading = true; error = null; });
+    try {
+      final updated = await api.getOrder(id);
+      if (mounted) setState(() => order = updated);
+    } on CustomerApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const steps = ['Order Placed', 'Payment Confirmed', 'Preparing Order', 'Out for Delivery', 'Delivered'];
+    const steps = ['PENDING', 'ADDRESS_CONFIRMED', 'PAYMENT_PENDING', 'CONFIRMED', 'PACKING', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+    final current = steps.indexOf(order.status);
+    final effectiveIndex = current < 0 ? 0 : current;
     return Scaffold(
-      appBar: AppBar(title: Text('Order #' + order.id)),
+      appBar: AppBar(title: Text('Order #' + order.id), actions: [IconButton(onPressed: loading ? null : _refresh, icon: const Icon(Icons.refresh))]),
       body: ListView(padding: const EdgeInsets.all(24), children: [
+        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(error!, style: const TextStyle(color: Colors.red))),
         for (var i = 0; i < steps.length; i++) ListTile(
-          leading: Icon(i < 3 ? Icons.check_circle : Icons.radio_button_unchecked, color: i < 3 ? const Color(0xFF168447) : Colors.black26),
-          title: Text(steps[i], style: TextStyle(fontWeight: i == 2 ? FontWeight.w800 : FontWeight.w500)),
-          subtitle: i == 2 ? const Text('In Progress') : null,
+          leading: Icon(i <= effectiveIndex ? Icons.check_circle : Icons.radio_button_unchecked, color: i <= effectiveIndex ? const Color(0xFF168447) : Colors.black26),
+          title: Text(steps[i], style: TextStyle(fontWeight: i == effectiveIndex ? FontWeight.w800 : FontWeight.w500)),
+          subtitle: i == effectiveIndex ? const Text('Current status') : null,
         ),
         Card(child: ListTile(leading: const Icon(Icons.local_shipping_outlined), title: const Text('Delivery Address'), subtitle: Text(order.address))),
       ]),
