@@ -124,6 +124,19 @@ class HttpCustomerRepository {
     return _orderFromApi(_success(response));
   }
 
+  Future<String> createPaymentLink(int orderId) async {
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/customers/me/orders/$orderId/payment-link'),
+      headers: _headers,
+    );
+    final body = _success(response);
+    final url = body['payment_link_url'];
+    if (url is! String || url.isEmpty) {
+      throw const CustomerApiException('Payment link was not returned by the server.');
+    }
+    return url;
+  }
+
   Future<OrderRecord> getOrder(int orderId) async {
     final response = await _client.get(Uri.parse("$_baseUrl/customers/me/orders/$orderId"), headers: _headers);
     return _orderFromApi(_success(response));
