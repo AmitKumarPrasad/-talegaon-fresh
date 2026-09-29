@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'auth_api.dart';
+import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
 
@@ -726,6 +727,7 @@ class _AppShellState extends State<AppShell> {
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
       CartPage(cart: cart, onChanged: _persistCart, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
+      AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
@@ -748,6 +750,7 @@ class _AppShellState extends State<AppShell> {
             label: 'Cart',
           ),
           const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+          const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'AI'),
           const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
