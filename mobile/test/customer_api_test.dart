@@ -89,6 +89,28 @@ void main() {
     expect(cart.single.quantity, 3);
   });
 
+
+  test('order persistence preserves payment status and payment link', () {
+    final original = OrderRecord(
+      id: '1001',
+      total: 120,
+      payment: 'UPI',
+      address: 'Main Road, Talegaon, 410507',
+      createdAt: DateTime.parse('2026-09-29T10:00:00Z'),
+      status: 'PAYMENT_PENDING',
+      paymentLinkUrl: 'https://rzp.io/i/test-link',
+      items: const [
+        OrderLine(name: 'Tomato', unit: 'kg', price: 40, quantity: 3),
+      ],
+    );
+
+    final restored = OrderRecord.fromJson(jsonDecode(jsonEncode(original.toJson())));
+    expect(restored, isNotNull);
+    expect(restored!.status, 'PAYMENT_PENDING');
+    expect(restored.paymentLinkUrl, 'https://rzp.io/i/test-link');
+    expect(restored.items.single.name, 'Tomato');
+  });
+
   test('customer API sends authenticated order creation payload', () async {
     final client = MockClient((request) async {
       expect(request.method, 'POST');
