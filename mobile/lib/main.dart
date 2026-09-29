@@ -1244,32 +1244,78 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
   );
 }
 
-class OrdersPage extends StatelessWidget {
+class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key, required this.orders, this.api});
   final List<OrderRecord> orders;
   final HttpCustomerRepository? api;
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      const Text('My Orders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 18),
-      if (orders.isEmpty)
-        const Card(child: ListTile(
-          leading: Icon(Icons.receipt_long_outlined),
-          title: Text('No orders yet'),
-          subtitle: Text('Your completed orders will appear here.'),
-        ))
-      else
-        ...orders.map((order) => Card(child: ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.shopping_basket)),
-          title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text(order.payment + ' • ₹' + order.total.toStringAsFixed(0)),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order, api: api))),
-        ))),
-    ],
+  State<OrdersPage> createState() => _OrdersPageState();
+}
+
+class _OrdersPageState extends State<OrdersPage> {
+  bool refreshing = false;
+
+  Future<void> _refreshOrders() async {
+    final api = widget.api;
+    if (api == null) return;
+    setState(() => refreshing = true);
+    try {
+      final latest = await api.getOrders();
+      if (mounted) {
+        setState(() {
+          widget.orders
+            ..clear()
+            ..addAll(latest);
+        });
+      }
+    } on CustomerApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: const Text('My Orders'),
+      actions: [
+        if (widget.api != null)
+          IconButton(
+            tooltip: 'Refresh orders',
+            onPressed: refreshing ? null : _refreshOrders,
+            icon: refreshing
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh),
+          ),
+      ],
+    ),
+    body: RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        children: [
+          if (widget.orders.isEmpty)
+            const Card(child: ListTile(
+              leading: Icon(Icons.receipt_long_outlined),
+              title: Text('No orders yet'),
+              subtitle: Text('Your completed orders will appear here.'),
+            ))
+          else
+            ...widget.orders.map((order) => Card(child: ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.shopping_basket)),
+              title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(order.payment + ' • ' + order.status + ' • ₹' + order.total.toStringAsFixed(0)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order, api: widget.api))),
+            ))),
+        ],
+      ),
+    ),
   );
 }
 
