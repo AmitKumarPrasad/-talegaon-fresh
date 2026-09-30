@@ -114,7 +114,9 @@ class HttpAuthRepository implements AuthRepository {
         await _client.post(Uri.parse('$_baseUrl/auth/logout-session'),
           headers: const {'Accept':'application/json','Content-Type':'application/json'},
           body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
-      } catch (_) {}
+      } catch (_) {
+        // Best-effort server revocation; local credentials are cleared below.
+      }
     }
     await _clear();
   }
