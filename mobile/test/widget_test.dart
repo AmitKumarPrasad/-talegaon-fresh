@@ -10,7 +10,6 @@ class FakeProductRepository implements ProductRepository {
         ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true),
         ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true),
       ];
-
 }
 
 void main() {
@@ -55,13 +54,14 @@ void main() {
     await tester.tap(find.text('My Addresses'));
     await tester.pumpAndSettle();
 
+    expect(find.text('No saved addresses yet.'), findsOneWidget);
+    expect(find.text('Add Address'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is Text && widget.data?.contains('Talegaon Dabhade') == true,
       ),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Add Address'), findsOneWidget);
 
     await tester.tap(find.text('Add Address'));
     await tester.pumpAndSettle();
@@ -102,6 +102,7 @@ void main() {
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
+
   testWidgets('customer cart persists across app sessions', (tester) async {
     SharedPreferences.setMockInitialValues({});
 
@@ -139,6 +140,4 @@ void main() {
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
   });
-
-
 }
