@@ -647,8 +647,19 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadAddresses() async {
     if (_useRemoteCustomerApi) {
-      try { final remote = await customerApi.getAddresses(); if (mounted) setState(() => addresses..clear()..addAll(remote)); return; }
-      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+      try {
+        final remote = await customerApi.getAddresses();
+        if (mounted) setState(() => addresses..clear()..addAll(remote));
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => addresses.clear());
+      } catch (_) {
+        if (mounted) setState(() => addresses.clear());
+      }
+      return;
     }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_addressesStorageKey);
@@ -690,8 +701,19 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadOrders() async {
     if (_useRemoteCustomerApi) {
-      try { final remote = await customerApi.getOrders(); if (mounted) setState(() => orders..clear()..addAll(remote)); return; }
-      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+      try {
+        final remote = await customerApi.getOrders();
+        if (mounted) setState(() => orders..clear()..addAll(remote));
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => orders.clear());
+      } catch (_) {
+        if (mounted) setState(() => orders.clear());
+      }
+      return;
     }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_ordersStorageKey);
