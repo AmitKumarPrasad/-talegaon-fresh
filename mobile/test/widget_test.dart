@@ -75,12 +75,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Work'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data?.contains('Office Road') == true,
-      ),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Office Road'), findsOneWidget);
   });
 
   testWidgets('Talegaon Fresh loads products from repository', (tester) async {
