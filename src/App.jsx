@@ -100,7 +100,7 @@ function App() {
       <section className="final-cta"><div className="container"><div className="cta-inner"><div><span className="eyebrow">Ready to order?</span><h2>Let's get fresh produce to your doorstep.</h2></div><a className="btn btn-light btn-lg rounded-pill px-4" href={whatsappUrl()} target="_blank" rel="noreferrer"><i className="bi bi-whatsapp me-2"></i>Chat on WhatsApp</a></div></div></section>
     </main>
 
-    <footer><div className="container d-flex flex-column flex-md-row justify-content-between gap-3"><span>© {new Date().getFullYear()} Talegaon Fresh</span><span>Fresh fruits & vegetables • Talegaon</span></div></footer>
+    <footer><div className="container d-flex flex-column flex-md-row justify-content-between gap-3"><span>© {new Date().getFullYear()} Talegaon Fresh</span><span className="d-flex flex-wrap gap-3"><a href="/about.html">About</a><a href="/privacy-policy.html">Privacy Policy</a><a href="/terms.html">Terms</a><a href="/contact.html">Contact</a></span></div></footer>
   </div>;
 }
 
