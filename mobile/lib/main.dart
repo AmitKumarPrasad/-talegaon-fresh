@@ -145,7 +145,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Icon(Icons.eco_rounded, size: 42, color: cs.onPrimaryContainer),
                     ),
                     const SizedBox(height: 20),
-                    Text('Talegaon Fresh', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('FRESHORA', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
                     Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 22),
@@ -422,7 +422,7 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Talegaon Fresh',
+    title: 'FRESHORA',
     debugShowCheckedModeBanner: false,
     theme: _buildTheme(),
     home: showSplash
@@ -535,7 +535,7 @@ class SplashScreen extends StatelessWidget {
               child: const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
             ),
             const SizedBox(height: 24),
-            const Text('Talegaon Fresh', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
+            const Text('FRESHORA', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
             const SizedBox(height: 8),
             const Text('Fresh. Local. For a Healthier You.', style: TextStyle(fontSize: 15, color: Colors.black54)),
           ],
@@ -980,7 +980,7 @@ class HomePage extends StatelessWidget {
             const CircleAvatar(radius: 23, backgroundColor: Color(0xFFE1F4E6), child: Icon(Icons.eco, color: Color(0xFF168447))),
             const SizedBox(width: 12),
             const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Talegaon Fresh', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
               Text('Talegaon, Maharashtra', style: TextStyle(color: Colors.black54)),
             ])),
             IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
@@ -1711,7 +1711,7 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
         const SizedBox(height: 22),
         Text(order.status == 'CONFIRMED' ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with Talegaon Fresh.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
+        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with FRESHORA.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
         Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
         if (order.paymentLinkUrl != null) ...[
@@ -2154,7 +2154,7 @@ class ProfilePage extends StatelessWidget {
           onTap: onManageAddresses,
         ),
       ),
-      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
+      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About FRESHORA']
         .map((x) => Card(child: ListTile(
           title: Text(x),
           trailing: const Icon(Icons.chevron_right),

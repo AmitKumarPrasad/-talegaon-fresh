@@ -87,7 +87,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   const Icon(Icons.admin_panel_settings, size: 48, color: _brandGreen),
                   const SizedBox(height: 12),
                   const Text(
-                    'Talegaon Fresh Admin',
+                    'FRESHORA Admin',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),

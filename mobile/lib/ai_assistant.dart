@@ -68,7 +68,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
   final scrollController = ScrollController();
   final messages = <_AiMessage>[
     const _AiMessage(
-      text: 'Hi! I’m your Talegaon Fresh assistant. Ask me about your order, tracking status, products, or how to place an order.',
+      text: 'Hi! I’m your FRESHORA assistant. Ask me about your order, tracking status, products, or how to place an order.',
       fromUser: false,
     ),
   ];
@@ -217,7 +217,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => send(),
                         decoration: const InputDecoration(
-                          hintText: 'Ask about Talegaon Fresh…',
+                          hintText: 'Ask about FRESHORA…',
                         ),
                       ),
                     ),
