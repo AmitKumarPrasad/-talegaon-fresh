@@ -22,7 +22,9 @@ void main() {
     expect(find.text('Sign in'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '9876543210');
     await tester.enterText(find.byType(TextField).last, '123456');
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    final signInButton = find.widgetWithText(FilledButton, 'Sign in');
+    await tester.ensureVisible(signInButton);
+    await tester.tap(signInButton);
     await tester.pumpAndSettle();
     expect(find.text('Talegaon Fresh'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
