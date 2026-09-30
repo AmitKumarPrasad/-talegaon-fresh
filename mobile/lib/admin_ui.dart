@@ -312,7 +312,7 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
   void initState() {
     super.initState();
     _load();
-    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) => _silentRefresh());
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _silentRefresh());
   }
 
   @override
@@ -356,11 +356,11 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
       final oldIds = _orders.map((order) => order.orderId).toSet();
       final newOrders = latest.where((order) => !oldIds.contains(order.orderId)).toList();
       setState(() => _orders = latest);
-      if (newOrders.isNotEmpty && _status == 'ALL') {
+      if (newOrders.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text('🔔 New order #' + newOrders.first.orderId.toString() + ' received'),
+            content: Text('🔔 New order #${newOrders.first.orderId} received • ₹${newOrders.first.total.toStringAsFixed(0)}'),
           ),
         );
       }

@@ -478,14 +478,15 @@ ThemeData _buildTheme() {
       style: TextButton.styleFrom(foregroundColor: _brandGreenDark),
     ),
     chipTheme: ChipThemeData(
-      selectedColor: const Color(0xFFD7F0DE),
+      selectedColor: _brandGreen,
       backgroundColor: Colors.white,
       disabledColor: const Color(0xFFF0F3F1),
       checkmarkColor: Colors.white,
       labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
       side: const BorderSide(color: Color(0xFFD7E0DA)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -1059,8 +1060,16 @@ class _ProductsPageState extends State<ProductsPage> {
                 spacing: 10,
                 runSpacing: 10,
                 children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
-                  label: Text(value),
+                  label: Text(
+                    value,
+                    style: TextStyle(
+                      color: category == value ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   selected: category == value,
+                  selectedColor: _brandGreen,
+                  checkmarkColor: Colors.white,
                   onSelected: (_) {
                     setSheetState(() => category = value);
                     setState(() {});
@@ -1156,8 +1165,16 @@ class _ProductsPageState extends State<ProductsPage> {
                 const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
                 final value = values[index];
                 return ChoiceChip(
-                  label: Text(value),
+                  label: Text(
+                    value,
+                    style: TextStyle(
+                      color: category == value ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   selected: category == value,
+                  selectedColor: _brandGreen,
+                  checkmarkColor: Colors.white,
                   onSelected: (_) => setState(() => category = value),
                 );
               },

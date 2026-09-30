@@ -68,7 +68,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
   final scrollController = ScrollController();
   final messages = <_AiMessage>[
     const _AiMessage(
-      text: 'Hi! I can help you discover products and understand how to use Talegaon Fresh. For live prices, stock, cart, checkout, and order status, use the app screens.',
+      text: 'Hi! I’m your Talegaon Fresh assistant. Ask me about your order, tracking status, products, or how to place an order.',
       fromUser: false,
     ),
   ];
@@ -127,6 +127,11 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     }
   }
 
+  Future<void> _sendQuickPrompt(String value) async {
+    controller.text = value;
+    await send();
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!scrollController.hasClients) return;
@@ -151,7 +156,7 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                         messages
                           ..clear()
                           ..add(const _AiMessage(
-                            text: 'Hi! I can help with product discovery and general questions. Use Products, Cart, and Orders for live commerce information.',
+                            text: 'Hi! I’m ready to help. Ask about your latest order, tracking, products, or checkout.',
                             fromUser: false,
                           ));
                       }),
@@ -162,6 +167,28 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
         body: SafeArea(
           child: Column(
             children: [
+              if (messages.length == 1 && !sending)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _QuickPrompt(
+                        label: 'Track my latest order',
+                        onTap: () => _sendQuickPrompt('Track my latest order'),
+                      ),
+                      _QuickPrompt(
+                        label: 'What is my order number?',
+                        onTap: () => _sendQuickPrompt('What is my order number?'),
+                      ),
+                      _QuickPrompt(
+                        label: 'How do I order?',
+                        onTap: () => _sendQuickPrompt('How do I place an order?'),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -240,11 +267,21 @@ class _MessageBubble extends StatelessWidget {
           color: message.isError
               ? Theme.of(context).colorScheme.errorContainer
               : message.fromUser
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(message.fromUser ? 18 : 4),
+            bottomRight: Radius.circular(message.fromUser ? 4 : 18),
+          ),
+          border: Border.all(
+            color: message.fromUser
+                ? Theme.of(context).colorScheme.primary
+                : const Color(0xFFE2E8E3),
+          ),
         ),
-        child: Text(message.text),
+        child: Text(message.text, style: TextStyle(color: message.fromUser ? Colors.white : Colors.black87, height: 1.35)),
       ),
     );
   }
@@ -269,5 +306,22 @@ class _TypingBubble extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
+      );
+}
+
+class _QuickPrompt extends StatelessWidget {
+  const _QuickPrompt({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ActionChip(
+        label: Text(label),
+        avatar: const Icon(Icons.auto_awesome_rounded, size: 16),
+        onPressed: onTap,
+        backgroundColor: Colors.white,
+        side: const BorderSide(color: Color(0xFFD7E0DA)),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
       );
 }

@@ -11,7 +11,7 @@ void main() {
 
     expect(find.text('Fresh AI Assistant'), findsOneWidget);
     expect(
-      find.textContaining('For live prices, stock, cart, checkout, and order status'),
+      find.textContaining('Ask me about your order, tracking status, products, or how to place an order.'),
       findsOneWidget,
     );
     expect(find.byTooltip('Send'), findsOneWidget);
