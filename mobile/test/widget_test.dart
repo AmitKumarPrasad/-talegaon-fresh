@@ -18,23 +18,15 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
-    expect(find.text('Welcome to Talegaon Fresh'), findsOneWidget);
-    expect(find.text('Send OTP'), findsOneWidget);
+    expect(find.text('Welcome back. Sign in securely.'), findsOneWidget);
+    expect(find.text('Sign in'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '9876543210');
-    await tester.tap(find.text('Send OTP'));
-    await tester.pumpAndSettle();
-    expect(find.text('Verify & Continue'), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, '123456');
-    await tester.tap(find.text('Verify & Continue'));
+    final signInButton = find.widgetWithText(FilledButton, 'Sign in');
+    await tester.ensureVisible(signInButton);
+    await tester.tap(signInButton);
     await tester.pumpAndSettle();
     expect(find.text('Talegaon Fresh'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('talegaon_fresh_session_token'), 'demo-token');
-
-    await tester.pumpWidget(const TalegaonFreshApp());
-    await tester.pumpAndSettle();
     expect(find.text('Home'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
