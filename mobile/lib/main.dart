@@ -19,10 +19,11 @@ AuthRepository _createAuthRepository() =>
         : const DemoAuthRepository();
 
 class CustomerSession {
-  const CustomerSession({required this.phone, required this.name, this.token});
+  const CustomerSession({required this.phone, required this.name, this.token, this.refreshToken});
   final String phone;
   final String name;
   final String? token;
+  final String? refreshToken;
 }
 
 class Product {
@@ -90,153 +91,126 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository()});
   final ValueChanged<CustomerSession> onAuthenticated;
   final AuthRepository authRepository;
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
+  @override State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
-  final otp = TextEditingController();
-  bool otpSent = false;
-  bool loading = false;
+  final pin = TextEditingController();
+  final name = TextEditingController();
+  bool registerMode = false, loading = false, obscure = true;
   String? error;
 
-  @override
-  void dispose() {
-    phone.dispose();
-    otp.dispose();
-    super.dispose();
-  }
+  @override void dispose() { phone.dispose(); pin.dispose(); name.dispose(); super.dispose(); }
 
   Future<void> submit() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    if (!mounted) return;
-
-    final normalizedPhone = phone.text.replaceAll(RegExp(r'\D'), '');
-    if (normalizedPhone.length != 10) {
-      setState(() {
-        loading = false;
-        error = 'Enter a valid 10-digit mobile number.';
-      });
-      return;
-    }
-
+    FocusScope.of(context).unfocus();
+    final normalized = phone.text.replaceAll(RegExp(r'\D'), '');
+    if (normalized.length != 10) { setState(() => error = 'Enter a valid 10-digit mobile number.'); return; }
+    if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) { setState(() => error = 'PIN must contain exactly 6 digits.'); return; }
+    if (registerMode && name.text.trim().isEmpty) { setState(() => error = 'Enter your name.'); return; }
+    setState(() { loading = true; error = null; });
     try {
-      if (!otpSent) {
-        await widget.authRepository.requestOtp(normalizedPhone);
-        if (!mounted) return;
-        setState(() {
-          loading = false;
-          otpSent = true;
-        });
-        return;
-      }
-
-      final session = await widget.authRepository.verifyOtp(
-        normalizedPhone,
-        otp.text.trim(),
-      );
+      final session = registerMode
+          ? await widget.authRepository.register(normalized, pin.text, name.text.trim())
+          : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
-      setState(() => loading = false);
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        loading = false;
-        error = e.message;
-      });
+      if (mounted) setState(() { loading = false; error = e.message; });
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        loading = false;
-        error = 'Authentication failed. Please try again.';
-      });
+      if (mounted) setState(() { loading = false; error = 'Something went wrong. Please try again.'; });
     }
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 430),
-          child: Card(
-            elevation: 0,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(Icons.eco, size: 52, color: Color(0xFF168447)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Welcome to Talegaon Fresh',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Sign in with your mobile number to continue.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile number',
-                      prefixText: '+91 ',
+  @override Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Card(
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(22)),
+                      child: Icon(Icons.eco_rounded, size: 42, color: cs.onPrimaryContainer),
                     ),
-                  ),
-                  if (otpSent) ...[
+                    const SizedBox(height: 20),
+                    Text('Talegaon Fresh', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 6),
+                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 22),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: false, label: Text('Sign in'), icon: Icon(Icons.login_rounded)),
+                        ButtonSegment(value: true, label: Text('Create account'), icon: Icon(Icons.person_add_alt_1_rounded)),
+                      ],
+                      selected: {registerMode},
+                      onSelectionChanged: loading ? null : (v) => setState(() { registerMode = v.first; error = null; }),
+                    ),
+                    const SizedBox(height: 22),
+                    if (registerMode) ...[
+                      TextField(controller: name, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_outline_rounded))),
+                      const SizedBox(height: 14),
+                    ],
+                    TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: '', prefixIcon: Icon(Icons.phone_android_rounded))),
                     const SizedBox(height: 14),
                     TextField(
-                      controller: otp,
+                      controller: pin,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'OTP',
-                        helperText: 'Demo OTP: 123456',
+                      maxLength: 6,
+                      obscureText: obscure,
+                      decoration: InputDecoration(
+                        labelText: '6-digit PIN',
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded)),
                       ),
                     ),
-                  ],
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      error!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
+                      child: const Row(children: [
+                        Icon(Icons.verified_user_outlined, size: 19),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('Your PIN is protected with one-way password hashing. Session tokens stay in secure device storage.', style: TextStyle(fontSize: 12.5))),
+                      ]),
                     ),
-                  ],
-                  const SizedBox(height: 18),
-                  FilledButton(
-                    onPressed: loading ? null : submit,
-                    child: Text(
-                      loading
-                          ? 'Please wait…'
-                          : (otpSent ? 'Verify & Continue' : 'Send OTP'),
+                    if (error != null) ...[
+                      const SizedBox(height: 14),
+                      Text(error!, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600)),
+                    ],
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: loading ? null : submit,
+                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                      child: loading ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(registerMode ? 'Create secure account' : 'Sign in'),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminLoginPage())),
-                    icon: const Icon(Icons.storefront_outlined, size: 18),
-                    label: const Text('Store Admin Login'),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminLoginPage())),
+                      icon: const Icon(Icons.storefront_outlined, size: 18),
+                      label: const Text('Store Admin Login'),
+                    ),
+                  ]),
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class CustomerAddress {
@@ -431,36 +405,18 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   }
 
   Future<void> _restoreSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('talegaon_fresh_session_phone');
-    final token = prefs.getString('talegaon_fresh_session_token');
-    if (!mounted || phone == null || phone.isEmpty || token == null || token.isEmpty) return;
-    setState(() => session = CustomerSession(phone: phone, name: prefs.getString('talegaon_fresh_session_name') ?? 'Talegaon Customer', token: token));
+    try {
+      final restored = await widget.authRepository.restoreSession();
+      if (mounted && restored != null) setState(() => session = restored);
+    } catch (_) {}
   }
 
   Future<void> _handleAuthenticated(CustomerSession value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('talegaon_fresh_session_phone', value.phone);
-    await prefs.setString('talegaon_fresh_session_name', value.name);
-    if (value.token != null && value.token!.isNotEmpty) {
-      await prefs.setString('talegaon_fresh_session_token', value.token!);
-    }
     if (mounted) setState(() => session = value);
   }
 
   Future<void> _signOut() async {
-    final token = session?.token;
-    if (token != null && token.split('.').length == 3) {
-      try {
-        await HttpCustomerRepository(token: token).logout();
-      } catch (_) {
-        // Clear local credentials even if the server cannot be reached.
-      }
-    }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('talegaon_fresh_session_phone');
-    await prefs.remove('talegaon_fresh_session_name');
-    await prefs.remove('talegaon_fresh_session_token');
+    await widget.authRepository.logout();
     if (mounted) setState(() => session = null);
   }
 
