@@ -482,7 +482,6 @@ ThemeData _buildTheme() {
       backgroundColor: Colors.white,
       disabledColor: const Color(0xFFF0F3F1),
       checkmarkColor: Colors.white,
-      selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
       labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
       side: const BorderSide(color: Color(0xFFD7E0DA)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
