@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:talegaon_fresh/auth_api.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test('demo repository supports PIN registration', () async {
     const repository = DemoAuthRepository();
     final session = await repository.register('9876543210', '123456', 'Test Customer');
