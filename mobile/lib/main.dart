@@ -478,7 +478,7 @@ ThemeData _buildTheme() {
       style: TextButton.styleFrom(foregroundColor: _brandGreenDark),
     ),
     chipTheme: ChipThemeData(
-      selectedColor: _brandGreen,
+      selectedColor: const Color(0xFFD7F0DE),
       backgroundColor: Colors.white,
       disabledColor: const Color(0xFFF0F3F1),
       checkmarkColor: Colors.white,
