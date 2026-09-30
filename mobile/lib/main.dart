@@ -478,11 +478,15 @@ ThemeData _buildTheme() {
       style: TextButton.styleFrom(foregroundColor: _brandGreenDark),
     ),
     chipTheme: ChipThemeData(
-      selectedColor: const Color(0xFFDCF2E1),
+      selectedColor: _brandGreen,
       backgroundColor: Colors.white,
-      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30), side: const BorderSide(color: Color(0xFFE1E8E3))),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      disabledColor: const Color(0xFFF0F3F1),
+      checkmarkColor: Colors.white,
+      selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+      side: const BorderSide(color: Color(0xFFD7E0DA)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -1036,6 +1040,49 @@ class _ProductsPageState extends State<ProductsPage> {
     return !['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage', 'apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
   }
 
+  void _showFilters() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Filter products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('Choose a category to narrow your fresh produce.', style: TextStyle(color: Colors.black54)),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
+                  label: Text(value),
+                  selected: category == value,
+                  onSelected: (_) {
+                    setSheetState(() => category = value);
+                    setState(() {});
+                  },
+                )).toList(),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Apply filter'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final query = searchController.text.trim().toLowerCase();
@@ -1046,33 +1093,75 @@ class _ProductsPageState extends State<ProductsPage> {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar.large(
-          title: const Text("Today's Products"),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(72),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        SliverAppBar(
+          pinned: true,
+          backgroundColor: _surfaceTint,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Fresh Products'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton.tonalIcon(
+                onPressed: _showFilters,
+                icon: const Icon(Icons.tune_rounded, size: 18),
+                label: const Text('Filter'),
+              ),
+            ),
+          ],
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFDCE5DE)),
+              ),
               child: TextField(
                 controller: searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search tomato, apple, spinach...',
+                  prefixIcon: Icon(Icons.search_rounded),
+                  suffixIcon: Icon(Icons.mic_none_rounded),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          sliver: SliverToBoxAdapter(
-            child: Wrap(
-              spacing: 8,
-              children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
-                label: Text(value),
-                selected: category == value,
-                onSelected: (_) => setState(() => category = value),
-              )).toList(),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Row(
+              children: [
+                const Text('Categories', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Spacer(),
+                Text('${filtered.length} items', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 58,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+              scrollDirection: Axis.horizontal,
+              itemCount: 4,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
+                final value = values[index];
+                return ChoiceChip(
+                  label: Text(value),
+                  selected: category == value,
+                  onSelected: (_) => setState(() => category = value),
+                );
+              },
             ),
           ),
         ),
@@ -1081,13 +1170,27 @@ class _ProductsPageState extends State<ProductsPage> {
         else if (widget.error != null)
           SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
         else if (filtered.isEmpty)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products match your search.'))))
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('No products match your search. Try another category or search term.'))))
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(filtered[i].name), onToggleFavorite: widget.onToggleFavorite), childCount: filtered.length),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: .70,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => ProductCard(
+                  product: filtered[i],
+                  onAdd: widget.onAdd,
+                  onOpen: widget.onOpenProduct,
+                  isFavorite: widget.favorites.contains(filtered[i].name),
+                  onToggleFavorite: widget.onToggleFavorite,
+                ),
+                childCount: filtered.length,
+              ),
             ),
           ),
       ],
