@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -6,6 +7,26 @@ import 'package:talegaon_fresh/auth_api.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  final values = <String, String>{};
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+    (call) async {
+      final args = Map<String, dynamic>.from(call.arguments as Map? ?? const {});
+      switch (call.method) {
+        case 'read':
+          return values[args['key'] as String];
+        case 'write':
+          values[args['key'] as String] = args['value'] as String;
+          return null;
+        case 'delete':
+          values.remove(args['key'] as String);
+          return null;
+        default:
+          return null;
+      }
+    },
+  );
   test('demo repository supports PIN registration', () async {
     const repository = DemoAuthRepository();
     final session = await repository.register('9876543210', '123456', 'Test Customer');
