@@ -133,7 +133,7 @@ class HttpAuthRepository implements AuthRepository {
       final body = jsonDecode(response.body);
       if (body is Map && body['detail'] is String) throw AuthException(body['detail']);
       if (body is Map && body['message'] is String) throw AuthException(body['message']);
-    } on AuthException { rethrow; } on FormatException {}
+    } on AuthException { rethrow; } on FormatException { /* malformed error payload */ }
     throw AuthException(fallback);
   }
 }
