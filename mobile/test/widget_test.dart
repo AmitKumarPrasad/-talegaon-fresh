@@ -13,7 +13,7 @@ class FakeProductRepository implements ProductRepository {
 }
 
 void main() {
-  testWidgets('Talegaon Fresh starts with customer authentication', (tester) async {
+  testWidgets('FRESHORA starts with customer authentication', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
@@ -25,7 +25,7 @@ void main() {
     await tester.ensureVisible(signInButton);
     await tester.tap(signInButton);
     await tester.pumpAndSettle();
-    expect(find.text('Talegaon Fresh'), findsOneWidget);
+    expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
@@ -78,7 +78,7 @@ void main() {
     expect(find.textContaining('Office Road'), findsOneWidget);
   });
 
-  testWidgets('Talegaon Fresh loads products from repository', (tester) async {
+  testWidgets('FRESHORA loads products from repository', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
@@ -92,7 +92,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Talegaon Fresh'), findsOneWidget);
+    expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text("Today's Fresh Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
