@@ -582,12 +582,23 @@ class _AppShellState extends State<AppShell> {
     _loadOrders();
     _loadAddresses();
     _loadFavorites();
+    _clearRemoteLocalState();
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
   String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
   String get _addressesStorageKey => 'talegaon_fresh_addresses_${widget.session.phone}';
   String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
+
+  Future<void> _clearRemoteLocalState() async {
+    if (!_useRemoteCustomerApi) return;
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_cartStorageKey),
+      prefs.remove(_ordersStorageKey),
+      prefs.remove(_addressesStorageKey),
+    ]);
+  }
 
   Future<void> _loadCart() async {
     if (_useRemoteCustomerApi) {
@@ -671,11 +682,11 @@ class _AppShellState extends State<AppShell> {
       if (mounted) setState(() => addresses..clear()..addAll(restored));
     } catch (_) {
       await prefs.remove(_addressesStorageKey);
-    await prefs.remove(_favoritesStorageKey);
     }
   }
 
   Future<void> _persistAddresses() async {
+    if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_addressesStorageKey, jsonEncode(addresses.map((address) => address.toJson()).toList()));
   }
@@ -729,6 +740,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistOrders() async {
+    if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_ordersStorageKey, jsonEncode(orders.map((order) => order.toJson()).toList()));
   }
@@ -2263,7 +2275,6 @@ class _AddressBookPageState extends State<AddressBookPage> {
     } on CustomerApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
-    widget.onChanged();
   }
 
   Future<void> _deleteAddress(int index) async {
