@@ -1109,10 +1109,17 @@ class _ProductsPageState extends State<ProductsPage> {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: FilledButton.tonalIcon(
+              child: OutlinedButton.icon(
                 onPressed: _showFilters,
                 icon: const Icon(Icons.tune_rounded, size: 18),
                 label: const Text('Filter'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _brandGreenDark,
+                  side: const BorderSide(color: _brandGreen),
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
               ),
             ),
           ],
@@ -1154,30 +1161,41 @@ class _ProductsPageState extends State<ProductsPage> {
           ),
         ),
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 58,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-              scrollDirection: Axis.horizontal,
-              itemCount: 4,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
-                final value = values[index];
-                return ChoiceChip(
-                  label: Text(
-                    value,
-                    style: TextStyle(
-                      color: category == value ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w700,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F6F2),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFD7E0DA)),
+            ),
+            child: SizedBox(
+              height: 48,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                scrollDirection: Axis.horizontal,
+                itemCount: 4,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
+                  final value = values[index];
+                  return ChoiceChip(
+                    label: Text(
+                      value,
+                      style: TextStyle(
+                        color: category == value ? Colors.white : _brandGreenDark,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  selected: category == value,
-                  selectedColor: _brandGreen,
-                  checkmarkColor: Colors.white,
-                  onSelected: (_) => setState(() => category = value),
-                );
-              },
+                    selected: category == value,
+                    selectedColor: _brandGreen,
+                    backgroundColor: Colors.white,
+                    checkmarkColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFD7E0DA)),
+                    onSelected: (_) => setState(() => category = value),
+                  );
+                },
+              ),
             ),
           ),
         ),
