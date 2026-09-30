@@ -563,9 +563,9 @@ class _AppShellState extends State<AppShell> {
   List<Product> products = [];
   bool loading = true;
   String? error;
-  final addresses = <CustomerAddress>[
-    const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
-  ];
+  // Production starts with no synthetic customer address. Remote addresses are loaded from the backend.
+  // This prevents demo data from appearing when the backend is unavailable or still loading.
+  final addresses = <CustomerAddress>[];
   final orders = <OrderRecord>[];
   late final HttpCustomerRepository customerApi;
 
