@@ -639,6 +639,27 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _detectLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    const rationaleShownKey = 'location_rationale_shown';
+    if (prefs.getBool(rationaleShownKey) != true) {
+      await prefs.setBool(rationaleShownKey, true);
+      if (!mounted) return;
+      final allow = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Use your location?'),
+          content: const Text(
+            'FRESHORA would like to use your approximate location to show your delivery area in the app. '
+            'We never share this with anyone else.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not now')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Allow')),
+          ],
+        ),
+      );
+      if (allow != true) return;
+    }
     final label = await detectCurrentLocationLabel();
     if (mounted && label != null) setState(() => detectedLocation = label);
   }

@@ -16,7 +16,7 @@ Future<String?> detectCurrentLocationLabel() async {
     }
 
     final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
     );
 
     final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
