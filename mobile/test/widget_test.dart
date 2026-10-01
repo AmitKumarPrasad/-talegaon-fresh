@@ -17,6 +17,12 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
+    await tester.pumpAndSettle();
+    final landingSignIn = find.text('Sign in').first;
+    await tester.ensureVisible(landingSignIn);
+    await tester.pumpAndSettle();
+    await tester.tap(landingSignIn);
+    await tester.pumpAndSettle();
     expect(find.text('Welcome back. Sign in securely.'), findsOneWidget);
     expect(find.text('Sign in'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '9876543210');
@@ -51,7 +57,12 @@ void main() {
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('My Addresses'));
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    final myAddresses = find.text('My Addresses');
+    await tester.ensureVisible(myAddresses);
+    await tester.pumpAndSettle();
+    await tester.tap(myAddresses);
     await tester.pumpAndSettle();
 
     expect(find.text('No saved addresses yet.'), findsOneWidget);
