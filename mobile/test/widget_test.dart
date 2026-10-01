@@ -18,7 +18,7 @@ void main() {
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
     expect(find.text('FRESHORA'), findsWidgets);
-    final landingSignIn = find.widgetWithText(TextButton, 'Sign in');
+    final landingSignIn = find.widgetWithText(OutlinedButton, 'Sign in');
     expect(landingSignIn, findsOneWidget);
     await tester.tap(landingSignIn);
     await tester.pumpAndSettle();
