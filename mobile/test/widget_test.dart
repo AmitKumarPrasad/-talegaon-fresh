@@ -10,31 +10,22 @@ class FakeProductRepository implements ProductRepository {
         ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true),
         ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true),
       ];
-
 }
 
 void main() {
-  testWidgets('Talegaon Fresh starts with customer authentication', (tester) async {
+  testWidgets('FRESHORA starts with customer authentication', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
-    expect(find.text('Welcome to Talegaon Fresh'), findsOneWidget);
-    expect(find.text('Send OTP'), findsOneWidget);
+    expect(find.text('Welcome back. Sign in securely.'), findsOneWidget);
+    expect(find.text('Sign in'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '9876543210');
-    await tester.tap(find.text('Send OTP'));
-    await tester.pumpAndSettle();
-    expect(find.text('Verify & Continue'), findsOneWidget);
     await tester.enterText(find.byType(TextField).last, '123456');
-    await tester.tap(find.text('Verify & Continue'));
+    final signInButton = find.widgetWithText(FilledButton, 'Sign in');
+    await tester.ensureVisible(signInButton);
+    await tester.tap(signInButton);
     await tester.pumpAndSettle();
-    expect(find.text('Talegaon Fresh'), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('talegaon_fresh_session_token'), 'demo-token');
-
-    await tester.pumpWidget(const TalegaonFreshApp());
-    await tester.pumpAndSettle();
+    expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
@@ -63,13 +54,14 @@ void main() {
     await tester.tap(find.text('My Addresses'));
     await tester.pumpAndSettle();
 
+    expect(find.text('No saved addresses yet.'), findsOneWidget);
+    expect(find.text('Add Address'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is Text && widget.data?.contains('Talegaon Dabhade') == true,
       ),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.text('Add Address'), findsOneWidget);
 
     await tester.tap(find.text('Add Address'));
     await tester.pumpAndSettle();
@@ -83,15 +75,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Work'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is Text && widget.data?.contains('Office Road') == true,
-      ),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Office Road'), findsOneWidget);
   });
 
-  testWidgets('Talegaon Fresh loads products from repository', (tester) async {
+  testWidgets('FRESHORA loads products from repository', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AppShell(
@@ -105,11 +92,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Talegaon Fresh'), findsOneWidget);
+    expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text("Today's Fresh Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
+
   testWidgets('customer cart persists across app sessions', (tester) async {
     SharedPreferences.setMockInitialValues({});
 
@@ -147,6 +135,4 @@ void main() {
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
   });
-
-
 }

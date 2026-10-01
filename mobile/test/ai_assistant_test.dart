@@ -9,9 +9,9 @@ void main() {
       home: AiAssistantPage(token: 'test-token'),
     ));
 
-    expect(find.text('Fresh AI Assistant'), findsOneWidget);
+    expect(find.text('FRESHORA AI'), findsOneWidget);
     expect(
-      find.textContaining('For live prices, stock, cart, checkout, and order status'),
+      find.textContaining('I can help with orders, tracking, products, and checkout.'),
       findsOneWidget,
     );
     expect(find.byTooltip('Send'), findsOneWidget);

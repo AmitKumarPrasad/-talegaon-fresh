@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -85,7 +87,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   const Icon(Icons.admin_panel_settings, size: 48, color: _brandGreen),
                   const SizedBox(height: 12),
                   const Text(
-                    'Talegaon Fresh Admin',
+                    'FRESHORA Admin',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
@@ -304,11 +306,19 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
   bool _loading = true;
   String? _error;
   List<AdminOrder> _orders = [];
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _silentRefresh());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -338,6 +348,26 @@ class _AdminOrdersTabState extends State<AdminOrdersTab> {
     }
   }
 
+  Future<void> _silentRefresh() async {
+    if (!mounted || _loading) return;
+    try {
+      final latest = await widget.repo.listOrders(status: _status);
+      if (!mounted) return;
+      final oldIds = _orders.map((order) => order.orderId).toSet();
+      final newOrders = latest.where((order) => !oldIds.contains(order.orderId)).toList();
+      setState(() => _orders = latest);
+      if (newOrders.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('🔔 New order #${newOrders.first.orderId} received • ₹${newOrders.first.total.toStringAsFixed(0)}'),
+          ),
+        );
+      }
+    } catch (_) {
+      // Background polling must not interrupt admin workflow.
+    }
+  }
   Future<void> _updateStatus(AdminOrder order, String status) async {
     try {
       await widget.repo.updateOrderStatus(order.orderId, status);

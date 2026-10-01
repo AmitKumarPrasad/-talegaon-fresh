@@ -51,11 +51,11 @@ flutter test
 
 ## Customer authentication
 
-The customer app uses an injectable authentication repository for the mobile-number and OTP sign-in flow.
+The customer app uses an injectable authentication repository for mobile-number + 6-digit PIN authentication.
 
-- Demo mode remains the default for local/widget testing and uses OTP `123456`.
-- Remote mode uses `POST /auth/request-otp` and `POST /auth/verify-otp`.
-- Remote authentication expects a JSON response containing `token` and may return `phone` and `name`.
+- Demo mode is used by local/widget tests and accepts PIN `123456`.
+- Remote mode uses `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, and `POST /auth/logout-session`.
+- Remote authentication expects `access_token`, `refresh_token`, and an optional `customer` object containing `phone` and `name`.
 - Configure the backend base URL with `AUTH_BASE_URL`.
 - Enable remote authentication with `AUTH_MODE=remote`.
 
@@ -66,6 +66,8 @@ flutter run \
   --dart-define=AUTH_MODE=remote \
   --dart-define=AUTH_BASE_URL=https://your-api.example.com
 ```
+
+For a production build, do not ship demo authentication. The release build must use `AUTH_MODE=remote` and the production backend URL. Never put backend secrets, admin tokens, or signing credentials in `--dart-define` values.
 
 No OTPs, API keys, or JWT secrets are stored in the mobile application. The authenticated customer token is persisted locally for session restoration and removed on sign out. The deployed backend must implement the documented authentication endpoints before remote mode is enabled for production.
 

@@ -115,7 +115,7 @@ class HttpAuthRepository implements AuthRepository {
           headers: const {'Accept':'application/json','Content-Type':'application/json'},
           body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
       } catch (_) {
-        // Local credentials are cleared even when server-side revocation is unavailable.
+        // Best-effort server revocation; local credentials are cleared below.
       }
     }
     await _clear();
@@ -133,9 +133,7 @@ class HttpAuthRepository implements AuthRepository {
       final body = jsonDecode(response.body);
       if (body is Map && body['detail'] is String) throw AuthException(body['detail']);
       if (body is Map && body['message'] is String) throw AuthException(body['message']);
-    } on AuthException { rethrow; } on FormatException {
-      // Use the generic authentication error for a malformed server payload.
-    }
+    } on AuthException { rethrow; } on FormatException { /* malformed error payload */ }
     throw AuthException(fallback);
   }
 }

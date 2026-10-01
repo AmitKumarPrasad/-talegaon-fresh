@@ -526,11 +526,15 @@ ThemeData _buildTheme() {
       style: TextButton.styleFrom(foregroundColor: _brandGreenDark),
     ),
     chipTheme: ChipThemeData(
-      selectedColor: const Color(0xFFDCF2E1),
+      selectedColor: _brandGreen,
       backgroundColor: Colors.white,
-      labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30), side: const BorderSide(color: Color(0xFFE1E8E3))),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      disabledColor: const Color(0xFFF0F3F1),
+      checkmarkColor: Colors.white,
+      labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+      side: const BorderSide(color: Color(0xFFD7E0DA)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -607,9 +611,9 @@ class _AppShellState extends State<AppShell> {
   List<Product> products = [];
   bool loading = true;
   String? error;
-  final addresses = <CustomerAddress>[
-    const CustomerAddress(label: 'Home', fullAddress: 'Talegaon Dabhade', city: 'Pune', pincode: '410507', landmark: 'Near Talegaon station'),
-  ];
+  // Production starts with no synthetic customer address. Remote addresses are loaded from the backend.
+  // This prevents demo data from appearing when the backend is unavailable or still loading.
+  final addresses = <CustomerAddress>[];
   final orders = <OrderRecord>[];
   late final HttpCustomerRepository customerApi;
 
@@ -626,12 +630,23 @@ class _AppShellState extends State<AppShell> {
     _loadOrders();
     _loadAddresses();
     _loadFavorites();
+    _clearRemoteLocalState();
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
   String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
   String get _addressesStorageKey => 'talegaon_fresh_addresses_${widget.session.phone}';
   String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
+
+  Future<void> _clearRemoteLocalState() async {
+    if (!_useRemoteCustomerApi) return;
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_cartStorageKey),
+      prefs.remove(_ordersStorageKey),
+      prefs.remove(_addressesStorageKey),
+    ]);
+  }
 
   Future<void> _loadCart() async {
     if (_useRemoteCustomerApi) {
@@ -691,8 +706,19 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadAddresses() async {
     if (_useRemoteCustomerApi) {
-      try { final remote = await customerApi.getAddresses(); if (mounted) setState(() => addresses..clear()..addAll(remote)); return; }
-      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+      try {
+        final remote = await customerApi.getAddresses();
+        if (mounted) setState(() => addresses..clear()..addAll(remote));
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => addresses.clear());
+      } catch (_) {
+        if (mounted) setState(() => addresses.clear());
+      }
+      return;
     }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_addressesStorageKey);
@@ -704,11 +730,11 @@ class _AppShellState extends State<AppShell> {
       if (mounted) setState(() => addresses..clear()..addAll(restored));
     } catch (_) {
       await prefs.remove(_addressesStorageKey);
-    await prefs.remove(_favoritesStorageKey);
     }
   }
 
   Future<void> _persistAddresses() async {
+    if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_addressesStorageKey, jsonEncode(addresses.map((address) => address.toJson()).toList()));
   }
@@ -734,8 +760,19 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadOrders() async {
     if (_useRemoteCustomerApi) {
-      try { final remote = await customerApi.getOrders(); if (mounted) setState(() => orders..clear()..addAll(remote)); return; }
-      catch (e) { if (e is CustomerApiException && e.statusCode == 401) { widget.onSignOut?.call(); return; } }
+      try {
+        final remote = await customerApi.getOrders();
+        if (mounted) setState(() => orders..clear()..addAll(remote));
+      } on CustomerApiException catch (e) {
+        if (e.statusCode == 401) {
+          widget.onSignOut?.call();
+          return;
+        }
+        if (mounted) setState(() => orders.clear());
+      } catch (_) {
+        if (mounted) setState(() => orders.clear());
+      }
+      return;
     }
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_ordersStorageKey);
@@ -751,6 +788,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _persistOrders() async {
+    if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_ordersStorageKey, jsonEncode(orders.map((order) => order.toJson()).toList()));
   }
@@ -1084,6 +1122,57 @@ class _ProductsPageState extends State<ProductsPage> {
     return !['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage', 'apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
   }
 
+  void _showFilters() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Filter products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('Choose a category to narrow your fresh produce.', style: TextStyle(color: Colors.black54)),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
+                  label: Text(
+                    value,
+                    style: TextStyle(
+                      color: category == value ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  selected: category == value,
+                  selectedColor: _brandGreen,
+                  checkmarkColor: Colors.white,
+                  onSelected: (_) {
+                    setSheetState(() => category = value);
+                    setState(() {});
+                  },
+                )).toList(),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Apply filter'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final query = searchController.text.trim().toLowerCase();
@@ -1094,33 +1183,101 @@ class _ProductsPageState extends State<ProductsPage> {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar.large(
-          title: const Text("Today's Products"),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(72),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        SliverAppBar(
+          pinned: true,
+          backgroundColor: _surfaceTint,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Fresh Products'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: OutlinedButton.icon(
+                onPressed: _showFilters,
+                icon: const Icon(Icons.tune_rounded, size: 18),
+                label: const Text('Filter'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _brandGreenDark,
+                  side: const BorderSide(color: _brandGreen),
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFDCE5DE)),
+              ),
               child: TextField(
                 controller: searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Search tomato, apple, spinach...',
+                  prefixIcon: Icon(Icons.search_rounded),
+                  suffixIcon: Icon(Icons.mic_none_rounded),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-          sliver: SliverToBoxAdapter(
-            child: Wrap(
-              spacing: 8,
-              children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
-                label: Text(value),
-                selected: category == value,
-                onSelected: (_) => setState(() => category = value),
-              )).toList(),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Row(
+              children: [
+                const Text('Categories', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Spacer(),
+                Text('${filtered.length} items', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F6F2),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFD7E0DA)),
+            ),
+            child: SizedBox(
+              height: 48,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                scrollDirection: Axis.horizontal,
+                itemCount: 4,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
+                  final value = values[index];
+                  return ChoiceChip(
+                    label: Text(
+                      value,
+                      style: TextStyle(
+                        color: category == value ? Colors.white : _brandGreenDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    selected: category == value,
+                    selectedColor: _brandGreen,
+                    backgroundColor: Colors.white,
+                    checkmarkColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFD7E0DA)),
+                    onSelected: (_) => setState(() => category = value),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -1129,13 +1286,27 @@ class _ProductsPageState extends State<ProductsPage> {
         else if (widget.error != null)
           SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
         else if (filtered.isEmpty)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products match your search.'))))
+          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('No products match your search. Try another category or search term.'))))
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-              delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: filtered[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(filtered[i].name), onToggleFavorite: widget.onToggleFavorite), childCount: filtered.length),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: .70,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => ProductCard(
+                  product: filtered[i],
+                  onAdd: widget.onAdd,
+                  onOpen: widget.onOpenProduct,
+                  isFavorite: widget.favorites.contains(filtered[i].name),
+                  onToggleFavorite: widget.onToggleFavorite,
+                ),
+                childCount: filtered.length,
+              ),
             ),
           ),
       ],
@@ -2031,7 +2202,7 @@ class ProfilePage extends StatelessWidget {
           onTap: onManageAddresses,
         ),
       ),
-      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About Talegaon Fresh']
+      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About FRESHORA']
         .map((x) => Card(child: ListTile(
           title: Text(x),
           trailing: const Icon(Icons.chevron_right),
@@ -2152,7 +2323,6 @@ class _AddressBookPageState extends State<AddressBookPage> {
     } on CustomerApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
-    widget.onChanged();
   }
 
   Future<void> _deleteAddress(int index) async {

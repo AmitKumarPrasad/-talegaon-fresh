@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { categories, products } from './data/products';
 
+const SITE_BASE = import.meta.env.BASE_URL;
+
 const WHATSAPP_NUMBER = '918788543135'; // Replace with the Talegaon Fresh business number before launch.
 
 function whatsappUrl(product = null) {
@@ -14,7 +16,7 @@ function Header() {
   return <header className="site-header sticky-top">
     <nav className="container navbar navbar-expand-lg py-3">
       <a className="navbar-brand d-flex align-items-center" href="#home" aria-label="Talegaon Fresh home">
-        <img src="/logo.svg" alt="Talegaon Fresh" className="brand-logo" />
+        <img src={`${SITE_BASE}logo.svg`} alt="Talegaon Fresh" className="brand-logo" />
       </a>
       <div className="d-flex align-items-center gap-2 ms-auto">
         <a className="nav-link d-none d-lg-inline" href="#products">Products</a>
@@ -100,7 +102,7 @@ function App() {
       <section className="final-cta"><div className="container"><div className="cta-inner"><div><span className="eyebrow">Ready to order?</span><h2>Let's get fresh produce to your doorstep.</h2></div><a className="btn btn-light btn-lg rounded-pill px-4" href={whatsappUrl()} target="_blank" rel="noreferrer"><i className="bi bi-whatsapp me-2"></i>Chat on WhatsApp</a></div></div></section>
     </main>
 
-    <footer><div className="container d-flex flex-column flex-md-row justify-content-between gap-3"><span>© {new Date().getFullYear()} Talegaon Fresh</span><span>Fresh fruits & vegetables • Talegaon</span></div></footer>
+    <footer><div className="container d-flex flex-column flex-md-row justify-content-between gap-3"><span>© {new Date().getFullYear()} Talegaon Fresh</span><span className="d-flex flex-wrap gap-3"><a href={`${SITE_BASE}about.html`}>About</a><a href={`${SITE_BASE}privacy-policy.html`}>Privacy Policy</a><a href={`${SITE_BASE}terms.html`}>Terms</a><a href={`${SITE_BASE}contact.html`}>Contact</a></span></div></footer>
   </div>;
 }
 
