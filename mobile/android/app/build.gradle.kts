@@ -7,18 +7,22 @@ plugins {
 }
 
 val signingPropertiesFile = File(
-    "${System.getenv("LOCALAPPDATA")}/TalegaonFreshSigning/key.properties"
+    System.getenv("LOCALAPPDATA")?.let { localAppData ->
+        "$localAppData/TalegaonFreshSigning/key.properties"
+    } ?: ""
 )
-if (!signingPropertiesFile.isFile) {
-    throw GradleException("Release signing properties not found at $signingPropertiesFile")
-}
-val signingProperties = Properties().apply {
-    signingPropertiesFile.inputStream().use { load(it) }
+val hasLocalSigningProperties = signingPropertiesFile.isFile
+val signingProperties = if (hasLocalSigningProperties) {
+    Properties().apply {
+        signingPropertiesFile.inputStream().use { load(it) }
+    }
+} else {
+    Properties()
 }
 
 android {
     namespace = "com.freshora.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -31,27 +35,27 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = signingProperties.getProperty("keyAlias")
-            keyPassword = signingProperties.getProperty("keyPassword")
-            storeFile = file(signingProperties.getProperty("storeFile"))
-            storePassword = signingProperties.getProperty("storePassword")
+    if (hasLocalSigningProperties) {
+        signingConfigs {
+            create("release") {
+                keyAlias = signingProperties.getProperty("keyAlias")
+                keyPassword = signingProperties.getProperty("keyPassword")
+                storeFile = file(signingProperties.getProperty("storeFile"))
+                storePassword = signingProperties.getProperty("storePassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasLocalSigningProperties) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
