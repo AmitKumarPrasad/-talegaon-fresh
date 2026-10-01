@@ -6,14 +6,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val signingPropertiesFile = File(
+// Local dev machine keystore (Windows) takes priority; falls back to the key.properties
+// that CI writes to android/ when ANDROID_KEYSTORE_BASE64 secrets are configured.
+val localSigningPropertiesFile = File(
     "${System.getenv("LOCALAPPDATA")}/TalegaonFreshSigning/key.properties"
 )
-if (!signingPropertiesFile.isFile) {
-    throw GradleException("Release signing properties not found at $signingPropertiesFile")
+val ciSigningPropertiesFile = rootProject.file("key.properties")
+val signingPropertiesFile = when {
+    localSigningPropertiesFile.isFile -> localSigningPropertiesFile
+    ciSigningPropertiesFile.isFile -> ciSigningPropertiesFile
+    else -> null
 }
-val signingProperties = Properties().apply {
-    signingPropertiesFile.inputStream().use { load(it) }
+val signingProperties = signingPropertiesFile?.let {
+    Properties().apply { it.inputStream().use { input -> load(input) } }
 }
 
 android {
@@ -41,17 +46,21 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = signingProperties.getProperty("keyAlias")
-            keyPassword = signingProperties.getProperty("keyPassword")
-            storeFile = file(signingProperties.getProperty("storeFile"))
-            storePassword = signingProperties.getProperty("storePassword")
+        if (signingProperties != null) {
+            create("release") {
+                keyAlias = signingProperties.getProperty("keyAlias")
+                keyPassword = signingProperties.getProperty("keyPassword")
+                storeFile = file(signingProperties.getProperty("storeFile"))
+                storePassword = signingProperties.getProperty("storePassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Falls back to the debug cert when no signing properties are available
+            // (e.g. CI runs without the ANDROID_KEYSTORE_BASE64 secret configured).
+            signingConfig = if (signingProperties != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }
