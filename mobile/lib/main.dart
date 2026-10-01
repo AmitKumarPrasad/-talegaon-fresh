@@ -10,6 +10,7 @@ import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
 import 'admin_ui.dart';
+import 'landing_page.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
@@ -88,9 +89,11 @@ String? _assetPathForProduct(String name) => _productAssetPaths[name.toLowerCase
 
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository()});
+  const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository(), this.onBack, this.initialRegisterMode = false});
   final ValueChanged<CustomerSession> onAuthenticated;
   final AuthRepository authRepository;
+  final VoidCallback? onBack;
+  final bool initialRegisterMode;
   @override State<LoginPage> createState() => _LoginPageState();
 }
 
@@ -98,8 +101,15 @@ class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
   final pin = TextEditingController();
   final name = TextEditingController();
-  bool registerMode = false, loading = false, obscure = true;
+  late bool registerMode;
+  bool loading = false, obscure = true;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    registerMode = widget.initialRegisterMode;
+  }
 
   @override void dispose() { phone.dispose(); pin.dispose(); name.dispose(); super.dispose(); }
 
@@ -139,13 +149,22 @@ class _LoginPageState extends State<LoginPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(28),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    if (widget.onBack != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Back to home',
+                          onPressed: widget.onBack,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(22)),
                       child: Icon(Icons.eco_rounded, size: 42, color: cs.onPrimaryContainer),
                     ),
                     const SizedBox(height: 20),
-                    Text('Talegaon Fresh', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('FRESHORA', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
                     Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 22),
@@ -394,6 +413,8 @@ class TalegaonFreshApp extends StatefulWidget {
 class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   CustomerSession? session;
   bool showSplash = true;
+  bool showAuthentication = false;
+  bool startWithCreateAccount = false;
 
   @override
   void initState() {
@@ -412,23 +433,50 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
   }
 
   Future<void> _handleAuthenticated(CustomerSession value) async {
-    if (mounted) setState(() => session = value);
+    if (mounted) {
+      setState(() {
+        session = value;
+        showAuthentication = false;
+      });
+    }
+  }
+
+  void _openAuthentication({required bool createAccount}) {
+    setState(() {
+      startWithCreateAccount = createAccount;
+      showAuthentication = true;
+    });
   }
 
   Future<void> _signOut() async {
     await widget.authRepository.logout();
-    if (mounted) setState(() => session = null);
+    if (mounted) {
+      setState(() {
+        session = null;
+        showAuthentication = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Talegaon Fresh',
+    title: 'FRESHORA',
     debugShowCheckedModeBanner: false,
     theme: _buildTheme(),
     home: showSplash
         ? const SplashScreen()
         : session == null
-            ? LoginPage(onAuthenticated: _handleAuthenticated, authRepository: widget.authRepository)
+            ? showAuthentication
+                ? LoginPage(
+                    onAuthenticated: _handleAuthenticated,
+                    authRepository: widget.authRepository,
+                    initialRegisterMode: startWithCreateAccount,
+                    onBack: () => setState(() => showAuthentication = false),
+                  )
+                : TalegaonLandingPage(
+                    onCreateAccount: () => _openAuthentication(createAccount: true),
+                    onSignIn: () => _openAuthentication(createAccount: false),
+                  )
             : AppShell(session: session!, onSignOut: _signOut),
   );
 }
@@ -531,7 +579,7 @@ class SplashScreen extends StatelessWidget {
               child: const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
             ),
             const SizedBox(height: 24),
-            const Text('Talegaon Fresh', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
+            const Text('FRESHORA', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
             const SizedBox(height: 8),
             const Text('Fresh. Local. For a Healthier You.', style: TextStyle(fontSize: 15, color: Colors.black54)),
           ],
@@ -942,7 +990,7 @@ class HomePage extends StatelessWidget {
             const CircleAvatar(radius: 23, backgroundColor: Color(0xFFE1F4E6), child: Icon(Icons.eco, color: Color(0xFF168447))),
             const SizedBox(width: 12),
             const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Talegaon Fresh', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
               Text('Talegaon, Maharashtra', style: TextStyle(color: Colors.black54)),
             ])),
             IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
@@ -1540,7 +1588,7 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
         const SizedBox(height: 22),
         Text(order.status == 'CONFIRMED' ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with Talegaon Fresh.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
+        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with FRESHORA.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
         Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
         if (order.paymentLinkUrl != null) ...[
