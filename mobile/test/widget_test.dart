@@ -17,6 +17,11 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const TalegaonFreshApp());
     await tester.pump(const Duration(milliseconds: 1700));
+    expect(find.text('FRESHORA'), findsWidgets);
+    final landingSignIn = find.widgetWithText(TextButton, 'Sign in');
+    expect(landingSignIn, findsOneWidget);
+    await tester.tap(landingSignIn);
+    await tester.pumpAndSettle();
     expect(find.text('Welcome back. Sign in securely.'), findsOneWidget);
     expect(find.text('Sign in'), findsWidgets);
     await tester.enterText(find.byType(TextField).first, '9876543210');
