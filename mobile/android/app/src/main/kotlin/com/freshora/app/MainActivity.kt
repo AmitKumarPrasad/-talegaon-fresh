@@ -1,4 +1,4 @@
-package com.example.talegaon_fresh
+package com.freshora.app
 
 import io.flutter.embedding.android.FlutterActivity
 

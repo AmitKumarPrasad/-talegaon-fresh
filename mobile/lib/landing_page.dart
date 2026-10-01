@@ -37,15 +37,19 @@ class TalegaonLandingPage extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, viewport) {
               final compact = viewport.maxWidth < 720;
+              final horizontalPadding = compact ? 16.0 : 32.0;
+              final contentWidth =
+                  (viewport.maxWidth < 1180 ? viewport.maxWidth : 1180) -
+                      horizontalPadding * 2;
               return SingleChildScrollView(
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1180),
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
-                        compact ? 16 : 32,
+                        horizontalPadding,
                         compact ? 14 : 24,
-                        compact ? 16 : 32,
+                        horizontalPadding,
                         28,
                       ),
                       child: Column(
@@ -55,11 +59,11 @@ class TalegaonLandingPage extends StatelessWidget {
                           const SizedBox(height: 22),
                           _hero(compact),
                           const SizedBox(height: 26),
-                          _benefits(compact),
+                          _benefits(compact, contentWidth),
                           const SizedBox(height: 28),
                           _whatsAppBanner(context, compact),
                           const SizedBox(height: 30),
-                          _howItWorks(compact),
+                          _howItWorks(compact, contentWidth),
                           const SizedBox(height: 28),
                           _footer(compact),
                         ],
@@ -232,44 +236,37 @@ class TalegaonLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _benefits(bool compact) => LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 850 ? 4 : 2;
-          const gap = 12.0;
-          final cardWidth =
-              (constraints.maxWidth - gap * (columns - 1)) / columns;
-          final benefits = [
-            (Icons.eco_rounded, 'Freshly selected', 'Picked with care'),
-            (
-              Icons.workspace_premium_rounded,
-              'Good quality',
-              'Quality you can trust'
+  Widget _benefits(bool compact, double maxWidth) {
+    final columns = maxWidth >= 850 ? 4 : 2;
+    const gap = 12.0;
+    final cardWidth = (maxWidth - gap * (columns - 1)) / columns;
+    final benefits = [
+      (Icons.eco_rounded, 'Freshly selected', 'Picked with care'),
+      (
+        Icons.workspace_premium_rounded,
+        'Good quality',
+        'Quality you can trust'
+      ),
+      (Icons.local_shipping_rounded, 'Local delivery', 'Talegaon & nearby'),
+      (Icons.storefront_rounded, 'Wide variety', 'Everyday favourites'),
+    ];
+    return Wrap(
+      spacing: gap,
+      runSpacing: gap,
+      children: [
+        for (var i = 0; i < benefits.length; i++)
+          SizedBox(
+            width: cardWidth,
+            child: _BenefitCard(
+              icon: benefits[i].$1,
+              title: benefits[i].$2,
+              detail: benefits[i].$3,
+              accent: i == 1 ? const Color(0xFFF2A900) : _brightGreen,
             ),
-            (
-              Icons.local_shipping_rounded,
-              'Local delivery',
-              'Talegaon & nearby'
-            ),
-            (Icons.storefront_rounded, 'Wide variety', 'Everyday favourites'),
-          ];
-          return Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: [
-              for (var i = 0; i < benefits.length; i++)
-                SizedBox(
-                  width: cardWidth,
-                  child: _BenefitCard(
-                    icon: benefits[i].$1,
-                    title: benefits[i].$2,
-                    detail: benefits[i].$3,
-                    accent: i == 1 ? const Color(0xFFF2A900) : _brightGreen,
-                  ),
-                ),
-            ],
-          );
-        },
-      );
+          ),
+      ],
+    );
+  }
 
   Widget _whatsAppBanner(BuildContext context, bool compact) => Container(
         padding: EdgeInsets.symmetric(
@@ -343,76 +340,65 @@ class TalegaonLandingPage extends StatelessWidget {
         ),
       );
 
-  Widget _howItWorks(bool compact) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Good food, made simple',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: compact ? 23 : 29,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.4,
-                  ),
+  Widget _howItWorks(bool compact, double maxWidth) {
+    final columns = maxWidth >= 900
+        ? 5
+        : maxWidth >= 560
+            ? 3
+            : 1;
+    const gap = 10.0;
+    final width = (maxWidth - gap * (columns - 1)) / columns;
+    final steps = [
+      (Icons.shopping_cart_rounded, 'Browse', 'Choose your produce'),
+      (Icons.chat_rounded, 'Place an order', 'App or WhatsApp'),
+      (Icons.fact_check_rounded, 'We confirm', 'Availability and price'),
+      (Icons.payments_rounded, 'Choose payment', 'UPI or cash on delivery'),
+      (Icons.home_rounded, 'Enjoy at home', 'Freshness delivered'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Good food, made simple',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: compact ? 23 : 29,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -.4,
                 ),
               ),
-              if (!compact) const _LocationPill(),
-            ],
-          ),
-          const SizedBox(height: 7),
-          const Text(
-            'From choosing your produce to a fresh delivery at home.',
-            style: TextStyle(color: Color(0xFF667268), fontSize: 15),
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 900
-                  ? 5
-                  : constraints.maxWidth >= 560
-                      ? 3
-                      : 1;
-              const gap = 10.0;
-              final width =
-                  (constraints.maxWidth - gap * (columns - 1)) / columns;
-              final steps = [
-                (Icons.shopping_cart_rounded, 'Browse', 'Choose your produce'),
-                (Icons.chat_rounded, 'Place an order', 'App or WhatsApp'),
-                (
-                  Icons.fact_check_rounded,
-                  'We confirm',
-                  'Availability and price'
+            ),
+            if (!compact) const _LocationPill(),
+          ],
+        ),
+        const SizedBox(height: 7),
+        const Text(
+          'From choosing your produce to a fresh delivery at home.',
+          style: TextStyle(color: Color(0xFF667268), fontSize: 15),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (var i = 0; i < steps.length; i++)
+              SizedBox(
+                width: width,
+                child: _StepCard(
+                  number: i + 1,
+                  icon: steps[i].$1,
+                  title: steps[i].$2,
+                  detail: steps[i].$3,
                 ),
-                (
-                  Icons.payments_rounded,
-                  'Choose payment',
-                  'UPI or cash on delivery'
-                ),
-                (Icons.home_rounded, 'Enjoy at home', 'Freshness delivered'),
-              ];
-              return Wrap(
-                spacing: gap,
-                runSpacing: gap,
-                children: [
-                  for (var i = 0; i < steps.length; i++)
-                    SizedBox(
-                      width: width,
-                      child: _StepCard(
-                        number: i + 1,
-                        icon: steps[i].$1,
-                        title: steps[i].$2,
-                        detail: steps[i].$3,
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      );
+              ),
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget _footer(bool compact) => Container(
         padding: EdgeInsets.symmetric(

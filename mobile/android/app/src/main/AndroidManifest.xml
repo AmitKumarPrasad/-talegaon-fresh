@@ -21,6 +21,13 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Workaround for a Flutter/Impeller + OpenGLES regression on some
+                 Android emulator GPU configurations that throws a
+                 'debugNeedsLayout': is not true assertion on the very first
+                 frame. Falling back to Skia avoids the crash. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.EnableImpeller"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

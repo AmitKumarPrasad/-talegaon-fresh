@@ -11,6 +11,12 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+node_modules/
+dist/
+mobile/.codex-build/
+mobile/.codex-android-build/
+mobile/build/
+mobile/android/build/
 
 # IntelliJ related
 *.iml
