@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'widgets/freshora_logo.dart';
 
 class TalegaonLandingPage extends StatelessWidget {
   const TalegaonLandingPage({
@@ -79,15 +80,7 @@ class TalegaonLandingPage extends StatelessWidget {
 
   Widget _header(bool compact) => Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: Color(0xFFDDF3DF),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.eco_rounded, color: _green, size: 28),
-          ),
+          const FreshoraLogo(size: 48),
           const SizedBox(width: 12),
           const Expanded(
             child: Column(
@@ -109,13 +102,6 @@ class TalegaonLandingPage extends StatelessWidget {
             ),
           ),
           if (!compact)
-            const Padding(
-              padding: EdgeInsets.only(right: 20),
-              child: _LocationPill(),
-            ),
-          TextButton(onPressed: onSignIn, child: const Text('Sign in')),
-          const SizedBox(width: 6),
-          if (!compact)
             FilledButton(
               onPressed: onCreateAccount,
               style: FilledButton.styleFrom(
@@ -123,7 +109,9 @@ class TalegaonLandingPage extends StatelessWidget {
                 foregroundColor: Colors.white,
               ),
               child: const Text('Create account'),
-            ),
+            )
+          else
+            TextButton(onPressed: onSignIn, child: const Text('Sign in')),
         ],
       );
 
@@ -132,7 +120,7 @@ class TalegaonLandingPage extends StatelessWidget {
       crossAxisAlignment:
           compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
-        const _LocationPill(light: true),
+        const FreshoraLogo(size: 56),
         const SizedBox(height: 18),
         Text.rich(
           TextSpan(
@@ -155,7 +143,7 @@ class TalegaonLandingPage extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          'Farm-fresh fruits and vegetables, carefully picked for your family in Talegaon and nearby areas.',
+          'Farm-fresh fruits and vegetables, carefully picked for your family, every day.',
           textAlign: compact ? TextAlign.center : TextAlign.left,
           style: TextStyle(
             color: Colors.white.withValues(alpha: .87),
@@ -247,7 +235,7 @@ class TalegaonLandingPage extends StatelessWidget {
         'Good quality',
         'Quality you can trust'
       ),
-      (Icons.local_shipping_rounded, 'Local delivery', 'Talegaon & nearby'),
+      (Icons.local_shipping_rounded, 'Local delivery', 'Delivered to your door'),
       (Icons.storefront_rounded, 'Wide variety', 'Everyday favourites'),
     ];
     return Wrap(
@@ -371,7 +359,6 @@ class TalegaonLandingPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (!compact) const _LocationPill(),
           ],
         ),
         const SizedBox(height: 7),
@@ -420,43 +407,6 @@ class TalegaonLandingPage extends StatelessWidget {
             _FooterValue(icon: Icons.groups_rounded, label: 'Local business'),
             _FooterValue(
                 icon: Icons.handshake_rounded, label: 'Here for our community'),
-          ],
-        ),
-      );
-}
-
-class _LocationPill extends StatelessWidget {
-  const _LocationPill({this.light = false});
-
-  final bool light;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: light ? Colors.white.withValues(alpha: .13) : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: light
-              ? Border.all(color: Colors.white.withValues(alpha: .23))
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.location_on_rounded,
-              size: 17,
-              color: light ? const Color(0xFFFFD73F) : const Color(0xFFE4423B),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              'Talegaon & nearby areas',
-              style: TextStyle(
-                color: light ? Colors.white : const Color(0xFF37453A),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ],
         ),
       );

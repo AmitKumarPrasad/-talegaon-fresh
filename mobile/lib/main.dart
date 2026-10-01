@@ -10,6 +10,7 @@ import 'ai_assistant.dart';
 import 'customer_api.dart';
 import 'product_api.dart';
 import 'admin_ui.dart';
+import 'widgets/freshora_logo.dart';
 import 'landing_page.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
@@ -1025,11 +1026,11 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
         sliver: SliverToBoxAdapter(
           child: Row(children: [
-            const CircleAvatar(radius: 23, backgroundColor: Color(0xFFE1F4E6), child: Icon(Icons.eco, color: Color(0xFF168447))),
+            const FreshoraLogo(size: 46),
             const SizedBox(width: 12),
             const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-              Text('Talegaon, Maharashtra', style: TextStyle(color: Colors.black54)),
+              Text('Freshness from farm to home', style: TextStyle(color: Colors.black54)),
             ])),
             IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
           ]),
