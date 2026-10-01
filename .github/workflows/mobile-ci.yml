@@ -56,9 +56,6 @@ jobs:
           storeFile=../upload-keystore.jks
           EOF
           keytool -list -keystore android/upload-keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
-          sed -i '1i import java.io.FileInputStream\nimport java.util.Properties\n\nval keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) { keystoreProperties.load(FileInputStream(keystorePropertiesFile)) }\n' android/app/build.gradle.kts
-          sed -i '/    buildTypes {/i\    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties.getProperty("keyAlias")\n            keyPassword = keystoreProperties.getProperty("keyPassword")\n            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }\n            storePassword = keystoreProperties.getProperty("storePassword")\n        }\n    }' android/app/build.gradle.kts
-          sed -i 's/signingConfig = signingConfigs.getByName("debug")/signingConfig = signingConfigs.getByName("release")/' android/app/build.gradle.kts
       - name: Build release APK
         run: flutter build apk --release
       - name: Build signed release app bundle

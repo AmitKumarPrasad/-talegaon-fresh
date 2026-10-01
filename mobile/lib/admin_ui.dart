@@ -192,6 +192,8 @@ class _AdminSummaryTabState extends State<AdminSummaryTab> {
   bool _loading = true;
   String? _error;
   AdminDashboardSummary? _summary;
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
 
   @override
   void initState() {
@@ -205,7 +207,7 @@ class _AdminSummaryTabState extends State<AdminSummaryTab> {
       _error = null;
     });
     try {
-      final summary = await widget.repo.getDashboardSummary();
+      final summary = await widget.repo.getDashboardSummary(startDate: _startDate, endDate: _endDate);
       if (!mounted) return;
       setState(() {
         _summary = summary;
@@ -224,6 +226,28 @@ class _AdminSummaryTabState extends State<AdminSummaryTab> {
         _loading = false;
       });
     }
+  }
+
+  String _dateLabel(DateTime value) => '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+
+  Future<void> _pickDate({required bool start}) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: start ? _startDate : _endDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      if (start) {
+        _startDate = selected;
+        if (_endDate.isBefore(_startDate)) _endDate = _startDate;
+      } else {
+        _endDate = selected;
+        if (_startDate.isAfter(_endDate)) _startDate = _endDate;
+      }
+    });
+    await _load();
   }
 
   Widget _statCard(String label, String value, IconData icon, Color color) => Expanded(
@@ -257,12 +281,18 @@ class _AdminSummaryTabState extends State<AdminSummaryTab> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text("Today's Overview", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const Text('Revenue & Orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickDate(start: true), icon: const Icon(Icons.calendar_today, size: 16), label: Text(_dateLabel(_startDate)))),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('to')),
+            Expanded(child: OutlinedButton.icon(onPressed: () => _pickDate(start: false), icon: const Icon(Icons.calendar_today, size: 16), label: Text(_dateLabel(_endDate)))),
+          ]),
           const SizedBox(height: 12),
           Row(children: [
-            _statCard('Orders today', s.todaysOrderCount.toString(), Icons.receipt_long, _brandGreen),
+            _statCard('Orders in period', (s.periodOrderCount ?? s.todaysOrderCount).toString(), Icons.receipt_long, _brandGreen),
             const SizedBox(width: 12),
-            _statCard('Revenue today', '₹${s.todaysRevenue.toStringAsFixed(0)}', Icons.currency_rupee, _brandGreen),
+            _statCard('Revenue in period', '₹${(s.periodRevenue ?? s.todaysRevenue).toStringAsFixed(0)}', Icons.currency_rupee, _brandGreen),
           ]),
           const SizedBox(height: 12),
           Row(children: [
@@ -270,6 +300,22 @@ class _AdminSummaryTabState extends State<AdminSummaryTab> {
             const SizedBox(width: 12),
             _statCard('Out of stock', s.outOfStockCount.toString(), Icons.warning_amber_rounded, Colors.red),
           ]),
+          if (s.dailyBreakdown.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Text('Daily breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: s.dailyBreakdown.map((day) => ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.calendar_month, color: _brandGreen),
+                  title: Text(_dateLabel(day.date)),
+                  subtitle: Text('${day.orderCount} orders'),
+                  trailing: Text('₹${day.revenue.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                )).toList(),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Text('Products (${s.totalProducts})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),

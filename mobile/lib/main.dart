@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/services.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -119,7 +121,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> submit() async {
     FocusScope.of(context).unfocus();
     final normalized = phone.text.replaceAll(RegExp(r'\D'), '');
-    if (normalized.length != 10) { setState(() => error = 'Enter a valid 10-digit mobile number.'); return; }
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(normalized)) {
+      setState(() => error = 'Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
     if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) { setState(() => error = 'PIN must contain exactly 6 digits.'); return; }
     if (registerMode && name.text.trim().isEmpty) { setState(() => error = 'Enter your name.'); return; }
     setState(() { loading = true; error = null; });
@@ -960,6 +965,26 @@ class _AppShellState extends State<AppShell> {
     _persistCart();
   }
 
+  int quantityFor(Product product) {
+    for (final item in cart) {
+      if (item.product.name == product.name) return item.quantity;
+    }
+    return 0;
+  }
+
+  void incrementProduct(Product product) => add(product);
+
+  void decrementProduct(Product product) {
+    CartItem? item;
+    for (final entry in cart) {
+      if (entry.product.name == product.name) {
+        item = entry;
+        break;
+      }
+    }
+    if (item != null) _decrementCartItem(item);
+  }
+
   void _incrementCartItem(CartItem item) {
     setState(() => item.quantity++);
     _persistCart();
@@ -990,8 +1015,8 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation),
-      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
+      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
+      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
@@ -999,7 +1024,7 @@ class _AppShellState extends State<AppShell> {
         session: widget.session,
         addresses: addresses,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
-        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
+        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
       ),
@@ -1039,7 +1064,7 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location});
+  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
@@ -1049,6 +1074,9 @@ class HomePage extends StatelessWidget {
   final Set<String> favorites;
   final ValueChanged<Product> onToggleFavorite;
   final String? location;
+  final int Function(Product) quantityFor;
+  final ValueChanged<Product> onIncrementProduct;
+  final ValueChanged<Product> onDecrementProduct;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -1116,7 +1144,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite, quantity: quantityFor(products[i]), onIncrement: () => onIncrementProduct(products[i]), onDecrement: () => onDecrementProduct(products[i])), childCount: products.length > 4 ? 4 : products.length),
         ),
       ),
     ],
@@ -1124,7 +1152,7 @@ class HomePage extends StatelessWidget {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite});
+  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
@@ -1133,6 +1161,9 @@ class ProductsPage extends StatefulWidget {
   final ValueChanged<Product> onOpenProduct;
   final Set<String> favorites;
   final ValueChanged<Product> onToggleFavorite;
+  final int Function(Product) quantityFor;
+  final ValueChanged<Product> onIncrementProduct;
+  final ValueChanged<Product> onDecrementProduct;
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -1342,6 +1373,9 @@ class _ProductsPageState extends State<ProductsPage> {
                   onOpen: widget.onOpenProduct,
                   isFavorite: widget.favorites.contains(filtered[i].name),
                   onToggleFavorite: widget.onToggleFavorite,
+                  quantity: widget.quantityFor(filtered[i]),
+                  onIncrement: () => widget.onIncrementProduct(filtered[i]),
+                  onDecrement: () => widget.onDecrementProduct(filtered[i]),
                 ),
                 childCount: filtered.length,
               ),
@@ -1418,12 +1452,15 @@ class ProductImage extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite});
+  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite, this.quantity = 0, this.onIncrement, this.onDecrement});
   final Product product;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpen;
   final bool isFavorite;
   final ValueChanged<Product> onToggleFavorite;
+  final int quantity;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onDecrement;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1465,15 +1502,26 @@ class ProductCard extends StatelessWidget {
           Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              onPressed: () => onAdd(product),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
+          if (quantity == 0)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                onPressed: () => onAdd(product),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add'),
+              ),
+            )
+          else
+            Container(
+              height: 42,
+              decoration: BoxDecoration(color: const Color(0xFFEAF6EA), borderRadius: BorderRadius.circular(30)),
+              child: Row(children: [
+                IconButton(onPressed: onDecrement, icon: const Icon(Icons.remove, size: 18), color: _brandGreenDark, tooltip: 'Decrease quantity'),
+                Expanded(child: Text('$quantity  •  ₹${(product.price * quantity).toStringAsFixed(0)}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, color: _brandGreenDark))),
+                IconButton(onPressed: onIncrement, icon: const Icon(Icons.add, size: 18), color: _brandGreenDark, tooltip: 'Increase quantity'),
+              ]),
             ),
-          ),
         ]),
             ),
             Positioned(
@@ -2176,6 +2224,45 @@ class _TrackingPageState extends State<TrackingPage> {
                 ]),
                 if (t.hasLiveLocation) ...[
                   const SizedBox(height: 10),
+                  SizedBox(
+                    height: 240,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: FlutterMap(
+                        key: ValueKey('${t.lat}_${t.lng}'),
+                        options: MapOptions(
+                          initialCenter: LatLng(t.lat!, t.lng!),
+                          initialZoom: 15,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.freshora.app',
+                          ),
+                          MarkerLayer(markers: [
+                            Marker(
+                              point: LatLng(t.lat!, t.lng!),
+                              width: 52,
+                              height: 52,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF168447),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 3),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                                ),
+                                child: const Icon(Icons.delivery_dining, color: Colors.white),
+                              ),
+                            ),
+                          ]),
+                          RichAttributionWidget(attributions: [
+                            TextSourceAttribution('OpenStreetMap contributors'),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     t.updatedAt != null ? 'Location updated ${_formatDate(t.updatedAt!)}' : 'Live location available',
                     style: const TextStyle(color: Colors.black54, fontSize: 12),
@@ -2244,11 +2331,14 @@ class _TrackingPageState extends State<TrackingPage> {
 }
 
 class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite});
+  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite, this.quantityFor, this.onIncrementProduct, this.onDecrementProduct});
 
   final List<Product> products;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onToggleFavorite;
+  final int Function(Product)? quantityFor;
+  final ValueChanged<Product>? onIncrementProduct;
+  final ValueChanged<Product>? onDecrementProduct;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -2272,6 +2362,9 @@ class FavoritesPage extends StatelessWidget {
                 onOpen: (value) => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: value, onAdd: onAdd))),
                 isFavorite: true,
                 onToggleFavorite: onToggleFavorite,
+                quantity: quantityFor?.call(product) ?? 0,
+                onIncrement: onIncrementProduct == null ? null : () => onIncrementProduct!(product),
+                onDecrement: onDecrementProduct == null ? null : () => onDecrementProduct!(product),
               );
             },
           ),
