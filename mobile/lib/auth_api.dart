@@ -114,7 +114,9 @@ class HttpAuthRepository implements AuthRepository {
         await _client.post(Uri.parse('$_baseUrl/auth/logout-session'),
           headers: const {'Accept':'application/json','Content-Type':'application/json'},
           body: jsonEncode({'refresh_token': refresh, 'device_id': await _deviceId()}));
-      } catch (_) {}
+      } catch (_) {
+        // Local credentials are cleared even when server-side revocation is unavailable.
+      }
     }
     await _clear();
   }
@@ -131,7 +133,9 @@ class HttpAuthRepository implements AuthRepository {
       final body = jsonDecode(response.body);
       if (body is Map && body['detail'] is String) throw AuthException(body['detail']);
       if (body is Map && body['message'] is String) throw AuthException(body['message']);
-    } on AuthException { rethrow; } on FormatException {}
+    } on AuthException { rethrow; } on FormatException {
+      // Use the generic authentication error for a malformed server payload.
+    }
     throw AuthException(fallback);
   }
 }
