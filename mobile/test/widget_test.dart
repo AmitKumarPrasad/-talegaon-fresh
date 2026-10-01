@@ -35,6 +35,14 @@ void main() {
     expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
 
+    // AppShell asks for location permission on first launch. Dismiss it so the
+    // modal does not block the navigation tap below in the widget test.
+    final notNowLocation = find.text('Not now');
+    if (notNowLocation.evaluate().isNotEmpty) {
+      await tester.tap(notNowLocation);
+      await tester.pumpAndSettle();
+    }
+
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     expect(find.text('My Profile'), findsOneWidget);
