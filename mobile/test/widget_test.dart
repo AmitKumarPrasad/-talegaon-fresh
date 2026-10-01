@@ -20,6 +20,7 @@ void main() {
     expect(find.text('FRESHORA'), findsWidgets);
     final landingSignIn = find.widgetWithText(OutlinedButton, 'Sign in');
     expect(landingSignIn, findsOneWidget);
+    await tester.ensureVisible(landingSignIn);
     await tester.tap(landingSignIn);
     await tester.pumpAndSettle();
     expect(find.text('Welcome back. Sign in securely.'), findsOneWidget);
