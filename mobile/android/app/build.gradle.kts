@@ -18,7 +18,7 @@ val signingProperties = Properties().apply {
 
 android {
     namespace = "com.freshora.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
