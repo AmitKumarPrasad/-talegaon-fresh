@@ -6,18 +6,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val signingPropertiesFile = File(
-    System.getenv("LOCALAPPDATA")?.let { localAppData ->
-        "$localAppData/TalegaonFreshSigning/key.properties"
-    } ?: ""
+// Local dev machine keystore (Windows) takes priority; falls back to the key.properties
+// that CI writes to android/ when ANDROID_KEYSTORE_BASE64 secrets are configured.
+val localSigningPropertiesFile = File(
+    "${System.getenv("LOCALAPPDATA")}/TalegaonFreshSigning/key.properties"
 )
-val hasLocalSigningProperties = signingPropertiesFile.isFile
-val signingProperties = if (hasLocalSigningProperties) {
-    Properties().apply {
-        signingPropertiesFile.inputStream().use { load(it) }
-    }
-} else {
-    Properties()
+val ciSigningPropertiesFile = rootProject.file("key.properties")
+val signingPropertiesFile = when {
+    localSigningPropertiesFile.isFile -> localSigningPropertiesFile
+    ciSigningPropertiesFile.isFile -> ciSigningPropertiesFile
+    else -> null
+}
+val signingProperties = signingPropertiesFile?.let {
+    Properties().apply { it.inputStream().use { input -> load(input) } }
 }
 
 android {
@@ -40,8 +41,8 @@ android {
         versionName = flutter.versionName
     }
 
-    if (hasLocalSigningProperties) {
-        signingConfigs {
+    signingConfigs {
+        if (signingProperties != null) {
             create("release") {
                 keyAlias = signingProperties.getProperty("keyAlias")
                 keyPassword = signingProperties.getProperty("keyPassword")
@@ -53,9 +54,9 @@ android {
 
     buildTypes {
         release {
-            if (hasLocalSigningProperties) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            // Falls back to the debug cert when no signing properties are available
+            // (e.g. CI runs without the ANDROID_KEYSTORE_BASE64 secret configured).
+            signingConfig = if (signingProperties != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter/services.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +15,7 @@ import 'product_api.dart';
 import 'admin_ui.dart';
 import 'widgets/freshora_logo.dart';
 import 'landing_page.dart';
+import 'location_service.dart';
 
 void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
@@ -117,7 +121,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> submit() async {
     FocusScope.of(context).unfocus();
     final normalized = phone.text.replaceAll(RegExp(r'\D'), '');
-    if (normalized.length != 10) { setState(() => error = 'Enter a valid 10-digit mobile number.'); return; }
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(normalized)) {
+      setState(() => error = 'Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
     if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) { setState(() => error = 'PIN must contain exactly 6 digits.'); return; }
     if (registerMode && name.text.trim().isEmpty) { setState(() => error = 'Enter your name.'); return; }
     setState(() { loading = true; error = null; });
@@ -621,6 +628,7 @@ class _AppShellState extends State<AppShell> {
   bool get _useRemoteCustomerApi => (widget.session.token ?? '').split('.').length == 3;
   final favorites = <String>{};
   String? cartSyncError;
+  String? detectedLocation;
 
   @override
   void initState() {
@@ -632,6 +640,33 @@ class _AppShellState extends State<AppShell> {
     _loadAddresses();
     _loadFavorites();
     _clearRemoteLocalState();
+    _detectLocation();
+  }
+
+  Future<void> _detectLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    const rationaleShownKey = 'location_rationale_shown';
+    if (prefs.getBool(rationaleShownKey) != true) {
+      await prefs.setBool(rationaleShownKey, true);
+      if (!mounted) return;
+      final allow = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Use your location?'),
+          content: const Text(
+            'FRESHORA would like to use your approximate location to show your delivery area in the app. '
+            'We never share this with anyone else.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not now')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Allow')),
+          ],
+        ),
+      );
+      if (allow != true) return;
+    }
+    final label = await detectCurrentLocationLabel();
+    if (mounted && label != null) setState(() => detectedLocation = label);
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
@@ -930,6 +965,26 @@ class _AppShellState extends State<AppShell> {
     _persistCart();
   }
 
+  int quantityFor(Product product) {
+    for (final item in cart) {
+      if (item.product.name == product.name) return item.quantity;
+    }
+    return 0;
+  }
+
+  void incrementProduct(Product product) => add(product);
+
+  void decrementProduct(Product product) {
+    CartItem? item;
+    for (final entry in cart) {
+      if (entry.product.name == product.name) {
+        item = entry;
+        break;
+      }
+    }
+    if (item != null) _decrementCartItem(item);
+  }
+
   void _incrementCartItem(CartItem item) {
     setState(() => item.quantity++);
     _persistCart();
@@ -960,8 +1015,8 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
-      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite),
+      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
+      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
@@ -969,7 +1024,7 @@ class _AppShellState extends State<AppShell> {
         session: widget.session,
         addresses: addresses,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
-        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite))),
+        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
       ),
@@ -1009,7 +1064,7 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite});
+  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
@@ -1018,6 +1073,10 @@ class HomePage extends StatelessWidget {
   final ValueChanged<Product> onOpenProduct;
   final Set<String> favorites;
   final ValueChanged<Product> onToggleFavorite;
+  final String? location;
+  final int Function(Product) quantityFor;
+  final ValueChanged<Product> onIncrementProduct;
+  final ValueChanged<Product> onDecrementProduct;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -1028,9 +1087,15 @@ class HomePage extends StatelessWidget {
           child: Row(children: [
             const FreshoraLogo(size: 46),
             const SizedBox(width: 12),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-              Text('Freshness from farm to home', style: TextStyle(color: Colors.black54)),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              Row(children: [
+                if (location != null) ...[
+                  const Icon(Icons.location_on, size: 14, color: Colors.black54),
+                  const SizedBox(width: 2),
+                ],
+                Flexible(child: Text(location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
+              ]),
             ])),
             IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
           ]),
@@ -1079,7 +1144,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite, quantity: quantityFor(products[i]), onIncrement: () => onIncrementProduct(products[i]), onDecrement: () => onDecrementProduct(products[i])), childCount: products.length > 4 ? 4 : products.length),
         ),
       ),
     ],
@@ -1087,7 +1152,7 @@ class HomePage extends StatelessWidget {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite});
+  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
@@ -1096,6 +1161,9 @@ class ProductsPage extends StatefulWidget {
   final ValueChanged<Product> onOpenProduct;
   final Set<String> favorites;
   final ValueChanged<Product> onToggleFavorite;
+  final int Function(Product) quantityFor;
+  final ValueChanged<Product> onIncrementProduct;
+  final ValueChanged<Product> onDecrementProduct;
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -1305,6 +1373,9 @@ class _ProductsPageState extends State<ProductsPage> {
                   onOpen: widget.onOpenProduct,
                   isFavorite: widget.favorites.contains(filtered[i].name),
                   onToggleFavorite: widget.onToggleFavorite,
+                  quantity: widget.quantityFor(filtered[i]),
+                  onIncrement: () => widget.onIncrementProduct(filtered[i]),
+                  onDecrement: () => widget.onDecrementProduct(filtered[i]),
                 ),
                 childCount: filtered.length,
               ),
@@ -1381,12 +1452,15 @@ class ProductImage extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite});
+  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite, this.quantity = 0, this.onIncrement, this.onDecrement});
   final Product product;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpen;
   final bool isFavorite;
   final ValueChanged<Product> onToggleFavorite;
+  final int quantity;
+  final VoidCallback? onIncrement;
+  final VoidCallback? onDecrement;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1428,15 +1502,26 @@ class ProductCard extends StatelessWidget {
           Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-              onPressed: () => onAdd(product),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
+          if (quantity == 0)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                onPressed: () => onAdd(product),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add'),
+              ),
+            )
+          else
+            Container(
+              height: 42,
+              decoration: BoxDecoration(color: const Color(0xFFEAF6EA), borderRadius: BorderRadius.circular(30)),
+              child: Row(children: [
+                IconButton(onPressed: onDecrement, icon: const Icon(Icons.remove, size: 18), color: _brandGreenDark, tooltip: 'Decrease quantity'),
+                Expanded(child: Text('$quantity  •  ₹${(product.price * quantity).toStringAsFixed(0)}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, color: _brandGreenDark))),
+                IconButton(onPressed: onIncrement, icon: const Icon(Icons.add, size: 18), color: _brandGreenDark, tooltip: 'Increase quantity'),
+              ]),
             ),
-          ),
         ]),
             ),
             Positioned(
@@ -1513,7 +1598,29 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   );
 }
 
-class CartPage extends StatelessWidget {
+/// Local promo codes: code -> (percentage off 0-1, flat max cap in rupees, flat discount if percent is null).
+const Map<String, _PromoOffer> _promoCodes = {
+  'FRESH10': _PromoOffer(percentOff: 0.10, maxOff: 50),
+  'WELCOME50': _PromoOffer(flatOff: 50, minOrder: 199),
+  'FRESHORA20': _PromoOffer(percentOff: 0.20, maxOff: 100, minOrder: 499),
+};
+
+class _PromoOffer {
+  const _PromoOffer({this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0});
+  final double? percentOff;
+  final double? maxOff;
+  final double? flatOff;
+  final double minOrder;
+
+  double discountFor(double subtotal) {
+    if (subtotal < minOrder) return 0;
+    if (flatOff != null) return flatOff!;
+    final raw = subtotal * (percentOff ?? 0);
+    return maxOff == null ? raw : (raw > maxOff! ? maxOff! : raw);
+  }
+}
+
+class CartPage extends StatefulWidget {
   const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
   final List<CartItem> cart;
   final ValueChanged<CartItem> onIncrement;
@@ -1525,11 +1632,52 @@ class CartPage extends StatelessWidget {
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
   final HttpCustomerRepository? api;
 
-  double get subtotal => cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
+  @override
+  State<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  final _promoController = TextEditingController();
+  String? _appliedCode;
+  String? _promoError;
+
+  double get subtotal => widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
+
+  double get discount {
+    final code = _appliedCode;
+    if (code == null) return 0;
+    return _promoCodes[code]!.discountFor(subtotal);
+  }
+
+  void _applyPromo() {
+    final code = _promoController.text.trim().toUpperCase();
+    final offer = _promoCodes[code];
+    setState(() {
+      if (code.isEmpty) {
+        _promoError = 'Enter a promo code';
+        _appliedCode = null;
+      } else if (offer == null) {
+        _promoError = 'Invalid promo code';
+        _appliedCode = null;
+      } else if (subtotal < offer.minOrder) {
+        _promoError = 'Add ₹${offer.minOrder.toStringAsFixed(0)} more to use this code';
+        _appliedCode = null;
+      } else {
+        _promoError = null;
+        _appliedCode = code;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _promoController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (cart.isEmpty) {
+    if (widget.cart.isEmpty) {
       return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.black26),
         SizedBox(height: 12),
@@ -1538,42 +1686,60 @@ class CartPage extends StatelessWidget {
       ]));
     }
     final delivery = subtotal >= 199 ? 20.0 : 0.0;
-    final total = subtotal + delivery;
+    final total = subtotal + delivery - discount;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
       children: [
         const Text('My Cart', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-        if (syncError != null)
+        if (widget.syncError != null)
           Card(
             color: Theme.of(context).colorScheme.errorContainer,
             child: ListTile(
               leading: Icon(Icons.cloud_off, color: Theme.of(context).colorScheme.onErrorContainer),
               title: const Text('Cart sync failed'),
-              subtitle: Text(syncError!),
-              trailing: TextButton(onPressed: onRetrySync, child: const Text('Retry')),
+              subtitle: Text(widget.syncError!),
+              trailing: TextButton(onPressed: widget.onRetrySync, child: const Text('Retry')),
             ),
           ),
-        if (syncError != null) const SizedBox(height: 10),
-        ...cart.map((item) => Card(
+        if (widget.syncError != null) const SizedBox(height: 10),
+        ...widget.cart.map((item) => Card(
           elevation: 0, child: ListTile(
             leading: SizedBox(width: 44, height: 44, child: ProductImage(product: item.product, size: 26, borderRadius: 10)),
             title: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('₹' + item.product.price.toStringAsFixed(0) + ' / ' + item.product.unit),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              IconButton(onPressed: () => onDecrement(item), icon: const Icon(Icons.remove_circle_outline)),
+              IconButton(onPressed: () => widget.onDecrement(item), icon: const Icon(Icons.remove_circle_outline)),
               Text(item.quantity.toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
-              IconButton(onPressed: () => onIncrement(item), icon: const Icon(Icons.add_circle_outline)),
-              IconButton(onPressed: () => onRemove(item), icon: const Icon(Icons.delete_outline), tooltip: 'Remove'),
+              IconButton(onPressed: () => widget.onIncrement(item), icon: const Icon(Icons.add_circle_outline)),
+              IconButton(onPressed: () => widget.onRemove(item), icon: const Icon(Icons.delete_outline), tooltip: 'Remove'),
             ]),
           ),
         )),
         const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _promoController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Promo code',
+                errorText: _promoError,
+                suffixIcon: _appliedCode != null ? const Icon(Icons.check_circle, color: Colors.green) : null,
+              ),
+              onSubmitted: (_) => _applyPromo(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(onPressed: _applyPromo, child: const Text('Apply')),
+        ]),
+        const SizedBox(height: 16),
         SummaryRow(label: 'Subtotal', value: subtotal),
         SummaryRow(label: 'Delivery Fee', value: delivery),
+        if (discount > 0) SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: addresses, onOrderPlaced: onOrderPlaced, api: api))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, api: widget.api))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -2058,6 +2224,45 @@ class _TrackingPageState extends State<TrackingPage> {
                 ]),
                 if (t.hasLiveLocation) ...[
                   const SizedBox(height: 10),
+                  SizedBox(
+                    height: 240,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: FlutterMap(
+                        key: ValueKey('${t.lat}_${t.lng}'),
+                        options: MapOptions(
+                          initialCenter: LatLng(t.lat!, t.lng!),
+                          initialZoom: 15,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.freshora.app',
+                          ),
+                          MarkerLayer(markers: [
+                            Marker(
+                              point: LatLng(t.lat!, t.lng!),
+                              width: 52,
+                              height: 52,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF168447),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 3),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                                ),
+                                child: const Icon(Icons.delivery_dining, color: Colors.white),
+                              ),
+                            ),
+                          ]),
+                          RichAttributionWidget(attributions: [
+                            TextSourceAttribution('OpenStreetMap contributors'),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     t.updatedAt != null ? 'Location updated ${_formatDate(t.updatedAt!)}' : 'Live location available',
                     style: const TextStyle(color: Colors.black54, fontSize: 12),
@@ -2126,11 +2331,14 @@ class _TrackingPageState extends State<TrackingPage> {
 }
 
 class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite});
+  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite, this.quantityFor, this.onIncrementProduct, this.onDecrementProduct});
 
   final List<Product> products;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onToggleFavorite;
+  final int Function(Product)? quantityFor;
+  final ValueChanged<Product>? onIncrementProduct;
+  final ValueChanged<Product>? onDecrementProduct;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -2154,6 +2362,9 @@ class FavoritesPage extends StatelessWidget {
                 onOpen: (value) => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: value, onAdd: onAdd))),
                 isFavorite: true,
                 onToggleFavorite: onToggleFavorite,
+                quantity: quantityFor?.call(product) ?? 0,
+                onIncrement: onIncrementProduct == null ? null : () => onIncrementProduct!(product),
+                onDecrement: onDecrementProduct == null ? null : () => onDecrementProduct!(product),
               );
             },
           ),
@@ -2173,6 +2384,29 @@ class ProfilePage extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
   }
 
+  String get _referralCode {
+    final digits = session.phone.replaceAll(RegExp(r'\D'), '');
+    final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits.padLeft(4, '0');
+    return 'FRESHORA$suffix';
+  }
+
+  Future<void> _copyReferralCode(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: _referralCode));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+  }
+
+  Future<void> _shareReferralCode(BuildContext context) async {
+    final message = 'Get fresh fruits & veggies delivered with FRESHORA! '
+        'Use my code $_referralCode to get a discount on your first order. '
+        'Download the app and start shopping fresh today.';
+    final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp on this device.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(20),
@@ -2185,6 +2419,44 @@ class ProfilePage extends StatelessWidget {
       const SizedBox(height: 4),
       Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
       const SizedBox(height: 22),
+      Card(
+        color: const Color(0xFFEAF6EA),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: const [
+              Icon(Icons.card_giftcard, color: Color(0xFF0B5B2C)),
+              SizedBox(width: 8),
+              Text('Refer & Earn', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            ]),
+            const SizedBox(height: 6),
+            const Text('Share FRESHORA with friends and family. They get a discount, you get rewarded.'),
+            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF0B5B2C), style: BorderStyle.solid),
+                  ),
+                  child: Text(_referralCode, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(onPressed: () => _copyReferralCode(context), icon: const Icon(Icons.copy), tooltip: 'Copy code'),
+            ]),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: () => _shareReferralCode(context),
+              icon: const Icon(Icons.share),
+              label: const Text('Invite friends'),
+            ),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 14),
       Card(
         child: ListTile(
           leading: const Icon(Icons.favorite_border),

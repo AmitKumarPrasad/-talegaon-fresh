@@ -105,6 +105,11 @@ class AdminDashboardSummary {
     required this.totalProducts,
     required this.outOfStockCount,
     required this.lowStockProducts,
+    this.periodOrderCount,
+    this.periodRevenue,
+    this.periodStart,
+    this.periodEnd,
+    this.dailyBreakdown = const [],
   });
 
   final int todaysOrderCount;
@@ -113,6 +118,11 @@ class AdminDashboardSummary {
   final int totalProducts;
   final int outOfStockCount;
   final List<String> lowStockProducts;
+  final int? periodOrderCount;
+  final double? periodRevenue;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+  final List<AdminRevenueDay> dailyBreakdown;
 
   factory AdminDashboardSummary.fromJson(Map<String, dynamic> json) => AdminDashboardSummary(
         todaysOrderCount: (json['todays_order_count'] as num?)?.toInt() ?? 0,
@@ -125,6 +135,27 @@ class AdminDashboardSummary {
             .map((e) => e['name']?.toString() ?? '')
             .where((name) => name.isNotEmpty)
             .toList(),
+        periodOrderCount: (json['period_order_count'] as num?)?.toInt(),
+        periodRevenue: (json['period_revenue'] as num?)?.toDouble(),
+        periodStart: DateTime.tryParse(json['period_start']?.toString() ?? ''),
+        periodEnd: DateTime.tryParse(json['period_end']?.toString() ?? ''),
+        dailyBreakdown: (json['daily_breakdown'] as List? ?? [])
+            .whereType<Map>()
+            .map((e) => AdminRevenueDay.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+}
+
+class AdminRevenueDay {
+  const AdminRevenueDay({required this.date, required this.orderCount, required this.revenue});
+  final DateTime date;
+  final int orderCount;
+  final double revenue;
+
+  factory AdminRevenueDay.fromJson(Map<String, dynamic> json) => AdminRevenueDay(
+        date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+        orderCount: (json['order_count'] as num?)?.toInt() ?? 0,
+        revenue: (json['revenue'] as num?)?.toDouble() ?? 0,
       );
 }
 
@@ -222,10 +253,16 @@ class HttpAdminRepository {
     return AdminProduct.fromJson(_success(response));
   }
 
-  Future<AdminDashboardSummary> getDashboardSummary() async {
-    final response = await _client.get(Uri.parse('$_baseUrl/admin/dashboard'), headers: _headers);
+  Future<AdminDashboardSummary> getDashboardSummary({DateTime? startDate, DateTime? endDate}) async {
+    final uri = Uri.parse('$_baseUrl/admin/dashboard').replace(queryParameters: {
+      if (startDate != null) 'start_date': _dateOnly(startDate),
+      if (endDate != null) 'end_date': _dateOnly(endDate),
+    });
+    final response = await _client.get(uri, headers: _headers);
     return AdminDashboardSummary.fromJson(_success(response));
   }
+
+  String _dateOnly(DateTime value) => '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   Future<AdminProduct> createProduct({
     required String name,
