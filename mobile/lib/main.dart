@@ -65,32 +65,97 @@ const Map<String, String> _productImageUrls = {
 
 String? _imageUrlForProduct(String name) => _productImageUrls[name.toLowerCase()];
 
-// Bundled brand photos take priority over the network fallback map above.
-// Drop a file at mobile/assets/images/<key>.png to enable it, e.g. "tomato.png".
-const Map<String, String> _productAssetPaths = {
-  'tomato': 'assets/images/tomato.png',
-  'potato': 'assets/images/potato.png',
-  'onion': 'assets/images/onion.png',
-  'carrot': 'assets/images/carrot.png',
-  'capsicum': 'assets/images/capsicum.png',
-  'cabbage': 'assets/images/cabbage.png',
-  'cauliflower': 'assets/images/cauliflower.png',
-  'ladyfinger': 'assets/images/ladyfinger.png',
-  'green beans': 'assets/images/green_beans.png',
-  'spinach': 'assets/images/spinach.png',
-  'coriander': 'assets/images/coriander.png',
-  'green chilli': 'assets/images/green_chilli.png',
-  'ginger': 'assets/images/ginger.png',
-  'garlic': 'assets/images/garlic.png',
-  'banana': 'assets/images/banana.png',
-  'apple': 'assets/images/apple.png',
-  'orange': 'assets/images/orange.png',
-  'grapes': 'assets/images/grapes.png',
-  'pomegranate': 'assets/images/pomegranate.png',
-  'papaya': 'assets/images/papaya.png',
+// Clear product photos supplied for the catalogue. Matching is keyword based so
+// API names such as "Red Onions" and "Green Beans (500 g)" use the right photo.
+const Map<String, String> _clearProductAssetPaths = {
+  'tomato': 'assets/images/products/tomatoes.png',
+  'red onion': 'assets/images/products/red_onions.png',
+  'onion': 'assets/images/products/red_onions.png',
+  'potato': 'assets/images/products/potatoes.png',
+  'garlic': 'assets/images/products/garlic.png',
+  'ginger': 'assets/images/products/ginger.png',
+  'green chilies': 'assets/images/products/green_chilies.png',
+  'green chillies': 'assets/images/products/green_chilies.png',
+  'green chilli': 'assets/images/products/green_chilies.png',
+  'green chili': 'assets/images/products/green_chilies.png',
+  'carrot': 'assets/images/products/carrots.png',
+  'okra': 'assets/images/products/okra.png',
+  'ladyfinger': 'assets/images/products/okra.png',
+  'lady finger': 'assets/images/products/okra.png',
+  'bhindi': 'assets/images/products/okra.png',
+  'cauliflower': 'assets/images/products/cauliflower.png',
+  'cabbage': 'assets/images/products/cabbage.png',
+  'coriander': 'assets/images/products/coriander.png',
+  'cilantro': 'assets/images/products/coriander.png',
+  'dhaniya': 'assets/images/products/coriander.png',
+  'mint': 'assets/images/products/mint.png',
+  'pudina': 'assets/images/products/mint.png',
+  'spinach': 'assets/images/products/spinach.png',
+  'palak': 'assets/images/products/spinach.png',
+  'leafy greens': 'assets/images/products/leafy_greens.png',
+  'curry leaves': 'assets/images/products/curry_leaves.png',
+  'dill': 'assets/images/products/dill.png',
+  'shepu': 'assets/images/products/dill.png',
+  'green beans': 'assets/images/products/green_beans.png',
+  'french beans': 'assets/images/products/green_beans.png',
+  'peas': 'assets/images/products/peas.png',
+  'bitter gourd': 'assets/images/products/bitter_gourd.png',
+  'karela': 'assets/images/products/bitter_gourd.png',
+  'bottle gourd': 'assets/images/products/bottle_gourd.png',
+  'lauki': 'assets/images/products/bottle_gourd.png',
+  'ridge gourd': 'assets/images/products/ridge_gourd.png',
+  'tindora': 'assets/images/products/tindora.png',
+  'ivy gourd': 'assets/images/products/tindora.png',
+  'taro': 'assets/images/products/taro.png',
+  'arbi': 'assets/images/products/taro.png',
+  'sweet potato': 'assets/images/products/sweet_potato.png',
+  'yam': 'assets/images/products/yam.png',
+  'beetroot': 'assets/images/products/beetroot.png',
+  'beet': 'assets/images/products/beetroot.png',
+  'radish': 'assets/images/products/radish.png',
+  'mooli': 'assets/images/products/radish.png',
+  'turnip': 'assets/images/products/turnip.png',
+  'bell peppers': 'assets/images/products/bell_peppers.png',
+  'bell pepper': 'assets/images/products/bell_peppers.png',
+  'capsicum': 'assets/images/products/bell_peppers.png',
+  'cucumber': 'assets/images/products/cucumber.png',
+  'kheera': 'assets/images/products/cucumber.png',
+  'green peppers': 'assets/images/products/green_peppers.png',
+  'banana': 'assets/images/products/banana.png',
+  'apples': 'assets/images/products/apples.png',
+  'apple': 'assets/images/products/apples.png',
+  'oranges': 'assets/images/products/oranges.png',
+  'orange': 'assets/images/products/oranges.png',
+  'pomegranates': 'assets/images/products/pomegranates.png',
+  'pomegranate': 'assets/images/products/pomegranates.png',
+  'green grapes': 'assets/images/products/green_grapes.png',
+  'black grapes': 'assets/images/products/black_grapes.png',
+  'grapes': 'assets/images/products/green_grapes.png',
+  'guava': 'assets/images/products/guava.png',
+  'papaya': 'assets/images/products/papaya.png',
+  'watermelon': 'assets/images/products/watermelon.png',
+  'muskmelon': 'assets/images/products/muskmelon.png',
+  'kharbuja': 'assets/images/products/muskmelon.png',
+  'pineapple': 'assets/images/products/pineapple.png',
+  'mango': 'assets/images/products/mango.png',
+  'lemon': 'assets/images/products/lemon.png',
+  'kiwi': 'assets/images/products/kiwi.png',
+  'sapota': 'assets/images/products/sapota.png',
+  'chikoo': 'assets/images/products/sapota.png',
+  'dragon fruit': 'assets/images/products/dragon_fruit.png',
 };
 
-String? _assetPathForProduct(String name) => _productAssetPaths[name.toLowerCase()];
+String? _assetPathForProduct(String name) {
+  final normalized = name.trim().toLowerCase();
+  final exact = _clearProductAssetPaths[normalized];
+  if (exact != null) return exact;
+  final aliases = _clearProductAssetPaths.entries.toList()
+    ..sort((a, b) => b.key.length.compareTo(a.key.length));
+  for (final entry in aliases) {
+    if (normalized.contains(entry.key)) return entry.value;
+  }
+  return null;
+}
 
 
 class LoginPage extends StatefulWidget {
@@ -1173,6 +1238,16 @@ class _ProductsPageState extends State<ProductsPage> {
   final searchController = TextEditingController();
   String category = 'All';
 
+  static const leafyKeywords = [
+    'spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cilantro',
+    'cabbage', 'mint', 'pudina', 'leafy greens', 'curry leaves', 'dill', 'shepu',
+  ];
+  static const fruitKeywords = [
+    'apple', 'banana', 'orange', 'pomegranate', 'grape', 'guava', 'papaya',
+    'watermelon', 'muskmelon', 'kharbuja', 'pineapple', 'mango', 'lemon',
+    'kiwi', 'sapota', 'chikoo', 'dragon fruit',
+  ];
+
   @override
   void dispose() {
     searchController.dispose();
@@ -1183,12 +1258,12 @@ class _ProductsPageState extends State<ProductsPage> {
     if (category == 'All') return true;
     final name = product.name.toLowerCase();
     if (category == 'Leafy Greens') {
-      return ['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage'].any(name.contains);
+      return leafyKeywords.any(name.contains);
     }
     if (category == 'Fruits') {
-      return ['apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
+      return fruitKeywords.any(name.contains);
     }
-    return !['spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cabbage', 'apple', 'banana', 'orange', 'mango', 'grapes', 'papaya', 'watermelon'].any(name.contains);
+    return !leafyKeywords.any(name.contains) && !fruitKeywords.any(name.contains);
   }
 
   void _showFilters() {
@@ -1249,6 +1324,7 @@ class _ProductsPageState extends State<ProductsPage> {
       final matchesSearch = query.isEmpty || product.name.toLowerCase().contains(query) || product.unit.toLowerCase().contains(query);
       return matchesSearch && matchesCategory(product);
     }).toList();
+    final selectedProducts = widget.products.where((product) => widget.quantityFor(product) > 0).toList();
 
     return CustomScrollView(
       slivers: [
@@ -1358,7 +1434,7 @@ class _ProductsPageState extends State<ProductsPage> {
           const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('No products match your search. Try another category or search term.'))))
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -1381,7 +1457,112 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
             ),
           ),
+        if (!widget.loading && widget.error == null && selectedProducts.isNotEmpty)
+          SliverToBoxAdapter(
+            child: SelectedItemsSummary(
+              products: selectedProducts,
+              quantityFor: widget.quantityFor,
+              onIncrement: widget.onIncrementProduct,
+              onDecrement: widget.onDecrementProduct,
+            ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
+    );
+  }
+}
+
+class SelectedItemsSummary extends StatelessWidget {
+  const SelectedItemsSummary({
+    super.key,
+    required this.products,
+    required this.quantityFor,
+    required this.onIncrement,
+    required this.onDecrement,
+  });
+
+  final List<Product> products;
+  final int Function(Product) quantityFor;
+  final ValueChanged<Product> onIncrement;
+  final ValueChanged<Product> onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalQuantity = products.fold<int>(0, (sum, product) => sum + quantityFor(product));
+    final totalAmount = products.fold<double>(0, (sum, product) => sum + product.price * quantityFor(product));
+    return Card(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      elevation: 0,
+      color: const Color(0xFFF1F8F2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFFCFE3D3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.shopping_basket_outlined, color: _brandGreenDark),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Your selection', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                ),
+                Text('$totalQuantity ${totalQuantity == 1 ? 'item' : 'items'}', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text('Adjust quantity here. Cart is optional.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+            const SizedBox(height: 10),
+            ...products.map((product) {
+              final quantity = quantityFor(product);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    SizedBox(width: 48, height: 48, child: ProductImage(product: product, size: 48, borderRadius: 10)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          Text('₹${product.price.toStringAsFixed(0)} / ${product.unit}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => onDecrement(product),
+                      icon: const Icon(Icons.remove_circle_outline),
+                      iconSize: 22,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Decrease quantity',
+                    ),
+                    Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w900)),
+                    IconButton(
+                      onPressed: () => onIncrement(product),
+                      icon: const Icon(Icons.add_circle_outline),
+                      iconSize: 22,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Increase quantity',
+                    ),
+                    SizedBox(width: 66, child: Text('₹${(product.price * quantity).toStringAsFixed(0)}', textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w900))),
+                  ],
+                ),
+              );
+            }),
+            const Divider(height: 18),
+            Row(
+              children: [
+                const Expanded(child: Text('Total amount', style: TextStyle(fontWeight: FontWeight.w900))),
+                Text('₹${totalAmount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _brandGreenDark)),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

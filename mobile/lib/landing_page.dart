@@ -474,27 +474,27 @@ class _ProduceCollage extends StatelessWidget {
                     left: width * .04,
                     top: 94,
                     child:
-                        _fruit('assets/images/banana.png', compact ? 98 : 112)),
+                        _fruit('assets/images/products/banana.png', compact ? 98 : 112)),
                 Positioned(
                     left: width * .34,
                     top: 28,
                     child: _fruit(
-                        'assets/images/tomato.png', compact ? 126 : 146)),
+                        'assets/images/products/tomatoes.png', compact ? 126 : 146)),
                 Positioned(
                     right: width * .02,
                     top: 101,
                     child: _fruit(
-                        'assets/images/grapes.png', compact ? 100 : 118)),
+                        'assets/images/products/green_grapes.png', compact ? 100 : 118)),
                 Positioned(
                     left: width * .18,
                     top: compact ? 150 : 164,
                     child:
-                        _fruit('assets/images/apple.png', compact ? 104 : 120)),
+                        _fruit('assets/images/products/apples.png', compact ? 104 : 120)),
                 Positioned(
                     right: width * .19,
                     top: compact ? 158 : 174,
                     child:
-                        _fruit('assets/images/carrot.png', compact ? 96 : 112)),
+                        _fruit('assets/images/products/carrots.png', compact ? 96 : 112)),
                 Positioned(
                   right: width * .04,
                   top: 10,
