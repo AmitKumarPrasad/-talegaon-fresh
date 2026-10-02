@@ -846,7 +846,6 @@ const _brandGreenDark = Color(0xFF0D5C30);
 const _surfaceTint = Color(0xFFF6F9F6);
 const _ink = Color(0xFF173021);
 const _mutedInk = Color(0xFF5E6F64);
-const _softGreen = Color(0xFFE7F4EA);
 
 ThemeData _buildTheme() {
   final colorScheme = ColorScheme.fromSeed(
