@@ -123,7 +123,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('FRESHORA'), findsOneWidget);
-    expect(find.text("Today's Fresh Products"), findsOneWidget);
+    expect(find.text("Today's Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
@@ -171,11 +171,12 @@ void main() {
     await tester.tap(find.text('Products'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Dairy'), findsOneWidget);
-    expect(find.text('Snacks'), findsOneWidget);
-    expect(find.text('Grocery'), findsOneWidget);
+    final dairyFilter = find.widgetWithText(ChoiceChip, 'Dairy');
+    expect(dairyFilter, findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Snacks'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Grocery'), findsOneWidget);
 
-    await tester.tap(find.text('Dairy'));
+    await tester.tap(dairyFilter);
     await tester.pumpAndSettle();
 
     expect(find.text('Amul Taaza Milk'), findsOneWidget);
