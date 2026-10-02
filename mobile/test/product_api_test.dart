@@ -18,6 +18,7 @@ void main() {
               'id': 1,
               'name': 'Tomato',
               'unit': '1 kg',
+              'category': 'Vegetables',
               'price': 30,
               'in_stock': true,
             },
@@ -36,6 +37,18 @@ void main() {
 
     final products = await repository.fetchProducts();
     expect(products.single.name, 'Tomato');
+    expect(products.single.category, 'Vegetables');
+  });
+
+  test('product API defaults missing category for backward compatibility', () {
+    final product = ApiProduct.fromJson({
+      'id': 99,
+      'name': 'Legacy Item',
+      'unit': '1 pc',
+      'price': 10,
+      'in_stock': true,
+    });
+    expect(product.category, 'Other');
   });
 
   test('product API omits authorization header without a token', () async {
