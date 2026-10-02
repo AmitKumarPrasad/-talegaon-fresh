@@ -15,9 +15,15 @@ Future<String?> detectCurrentLocationLabel() async {
       return null;
     }
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-    );
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+      );
+    } catch (_) {
+      position = await Geolocator.getLastKnownPosition();
+    }
+    if (position == null) return null;
 
     final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
     if (placemarks.isEmpty) return null;
