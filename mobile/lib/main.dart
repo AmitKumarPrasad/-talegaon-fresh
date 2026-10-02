@@ -893,11 +893,13 @@ class _AppShellState extends State<AppShell> {
   Future<OrderRecord> _completeOrder(String payment, CustomerAddress address, double total) async {
     if (_useRemoteCustomerApi) {
       final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
+      if (!mounted) return created;
       setState(() { orders.insert(0, created); cart.clear(); });
-      await customerApi.clearCart();
-      if (payment == 'UPI') {
-        final paymentUrl = await customerApi.createPaymentLink(int.parse(created.id));
-        return OrderRecord(id: created.id, total: created.total, payment: created.payment, address: created.address, createdAt: created.createdAt, status: created.status, items: created.items, paymentLinkUrl: paymentUrl);
+      try {
+        await customerApi.clearCart();
+      } catch (_) {
+        // The order is already committed. Keep it accessible for payment retry.
+        if (mounted) setState(() => cartSyncError = 'Order created. Please retry clearing your saved cart.');
       }
       return created;
     }
@@ -1058,6 +1060,7 @@ class _AppShellState extends State<AppShell> {
       ProfilePage(
         session: widget.session,
         addresses: addresses,
+        orders: orders,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
@@ -2013,6 +2016,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String payment = 'UPI';
   int selectedAddress = 0;
   bool savingAddress = false;
+  bool placingOrder = false;
 
   Future<void> _addAddress({CustomerAddress? initialAddress}) async {
     final result = await showDialog<CustomerAddress>(
@@ -2122,7 +2126,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       SummaryRow(label: 'Total', value: widget.total, bold: true),
       const SizedBox(height: 18),
       FilledButton(
-        onPressed: widget.addresses.isEmpty ? null : () async {
+        onPressed: widget.addresses.isEmpty || placingOrder || savingAddress ? null : () async {
+          setState(() => placingOrder = true);
           try {
             final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
             if (!context.mounted) return;
@@ -2132,10 +2137,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
           } catch (_) {
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed, but payment setup could not be completed. Please check My Orders.')));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not confirm the order. Check My Orders before trying again.')));
+          } finally {
+            if (mounted) setState(() => placingOrder = false);
           }
         },
-        child: const Text('Place Order'),
+        child: Text(placingOrder ? 'Placing order…' : 'Place Order'),
       ),
     ]),
   );
@@ -2153,7 +2160,10 @@ class OrderSuccessPage extends StatefulWidget {
 
 class _OrderSuccessPageState extends State<OrderSuccessPage> {
   late OrderRecord order;
-  bool refreshing = false;
+
+  bool get paymentPending => order.payment == 'UPI' && order.status == 'PAYMENT_PENDING';
+  String get heading => paymentPending ? 'Order Created — Payment Pending'
+      : order.status == 'CANCELLED' ? 'Order Cancelled' : 'Order Placed Successfully!';
 
   @override
   void initState() {
@@ -2161,48 +2171,19 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
     order = widget.order;
   }
 
-  Future<void> _refreshPayment() async {
-    final api = widget.api;
-    final id = int.tryParse(order.id);
-    if (api == null || id == null || order.payment != 'UPI') return;
-    setState(() => refreshing = true);
-    try {
-      final updated = await api.getOrder(id);
-      if (mounted) setState(() => order = updated);
-    } on CustomerApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => refreshing = false);
-    }
-  }
-
-  Future<void> _pay(BuildContext context) async {
-    final url = order.paymentLinkUrl;
-    if (url == null) return;
-    final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the payment page.')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Center(child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(order.status == 'CONFIRMED' ? Icons.check_circle : Icons.payment, size: 56, color: const Color(0xFF168447)),
+        Icon(paymentPending ? Icons.payment : order.status == 'CANCELLED' ? Icons.cancel_outlined : Icons.check_circle, size: 56, color: const Color(0xFF168447)),
         const SizedBox(height: 22),
-        Text(order.status == 'CONFIRMED' ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+        Text(heading, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with FRESHORA.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
+        Text(paymentPending ? 'Complete your UPI payment to confirm the order.' : order.status == 'CANCELLED' ? 'This order has been cancelled.' : 'Thank you for shopping with FRESHORA.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
         Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
-        if (order.paymentLinkUrl != null) ...[
-          const SizedBox(height: 18),
-          FilledButton.icon(onPressed: () => _pay(context), icon: const Icon(Icons.open_in_new), label: const Text('Pay with UPI')),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(onPressed: refreshing ? null : _refreshPayment, icon: const Icon(Icons.refresh), label: Text(refreshing ? 'Refreshing…' : 'Refresh payment status')),
-        ],
+        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () {
@@ -2291,11 +2272,18 @@ class _OrdersPageState extends State<OrdersPage> {
   );
 }
 
-class OrderDetailsPage extends StatelessWidget {
+class OrderDetailsPage extends StatefulWidget {
   const OrderDetailsPage({super.key, required this.order, this.api});
 
   final OrderRecord order;
   final HttpCustomerRepository? api;
+
+  @override
+  State<OrderDetailsPage> createState() => _OrderDetailsPageState();
+}
+
+class _OrderDetailsPageState extends State<OrderDetailsPage> {
+  late OrderRecord order = widget.order;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -2332,14 +2320,67 @@ class OrderDetailsPage extends StatelessWidget {
           subtitle: Text(order.address),
         )),
         const SizedBox(height: 14),
+        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
         FilledButton.icon(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: api))),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: widget.api))),
           icon: const Icon(Icons.local_shipping_outlined),
           label: const Text('Track Order'),
         ),
       ],
     ),
   );
+}
+
+class OrderPaymentActions extends StatefulWidget {
+  const OrderPaymentActions({super.key, required this.order, required this.api, required this.onUpdated});
+  final OrderRecord order;
+  final HttpCustomerRepository? api;
+  final ValueChanged<OrderRecord> onUpdated;
+
+  @override
+  State<OrderPaymentActions> createState() => _OrderPaymentActionsState();
+}
+
+class _OrderPaymentActionsState extends State<OrderPaymentActions> {
+  bool busy = false;
+  String? error;
+
+  Future<void> _update({bool pay = false}) async {
+    final api = widget.api;
+    final id = int.tryParse(widget.order.id);
+    if (api == null || id == null || busy) return;
+    setState(() { busy = true; error = null; });
+    try {
+      final latest = await api.getOrder(id);
+      if (!mounted) return;
+      widget.onUpdated(latest);
+      if (pay && latest.payment == 'UPI' && latest.status == 'PAYMENT_PENDING') {
+        final url = await api.createPaymentLink(id);
+        if (!mounted) return;
+        final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        if (!launched && mounted) setState(() => error = 'Could not open the payment page. Please try again.');
+      }
+    } on CustomerApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Payment could not be opened. Your order is saved; please retry.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.api == null || widget.order.payment != 'UPI' || widget.order.status != 'PAYMENT_PENDING') {
+      return const SizedBox.shrink();
+    }
+    return Column(children: [
+      const SizedBox(height: 12),
+      if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+      FilledButton.icon(onPressed: busy ? null : () => _update(pay: true), icon: const Icon(Icons.open_in_new), label: Text(busy ? 'Please wait…' : 'Pay with UPI')),
+      OutlinedButton.icon(onPressed: busy ? null : _update, icon: const Icon(Icons.refresh), label: const Text('Refresh payment status')),
+    ]);
+  }
 }
 
 String _formatDate(DateTime value) {
@@ -2645,10 +2686,50 @@ class FavoritesPage extends StatelessWidget {
   );
 }
 
+class ProfileInformationPage extends StatelessWidget {
+  const ProfileInformationPage({super.key, required this.title});
+  final String title;
+
+  Future<void> _contactSupport(BuildContext context) async {
+    try {
+      final opened = await launchUrl(Uri.parse('https://wa.me/918788543135'), mode: LaunchMode.externalApplication);
+      if (opened || !context.mounted) return;
+    } catch (_) {
+      if (!context.mounted) return;
+    }
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact support on WhatsApp at +91 87885 43135.')));
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: ListView(padding: const EdgeInsets.all(20), children: [
+      if (title == 'Payment Methods') ...[
+        const ListTile(leading: Icon(Icons.payment), title: Text('UPI'), subtitle: Text('Choose UPI at checkout and pay through the secure payment page.')),
+        const ListTile(leading: Icon(Icons.payments_outlined), title: Text('Cash on Delivery'), subtitle: Text('Pay in cash when your order arrives.')),
+        const Padding(padding: EdgeInsets.all(16), child: Text('To finish an unpaid UPI order, open My Orders, select the order, and tap Pay with UPI.')),
+      ] else if (title == 'Help & Support') ...[
+        const Text('Need help with an order?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        const Text('Contact our team on WhatsApp at +91 87885 43135. Include your Order ID from My Orders so we can help.'),
+        const SizedBox(height: 16),
+        FilledButton.icon(onPressed: () => _contactSupport(context), icon: const Icon(Icons.chat_outlined), label: const Text('Contact on WhatsApp')),
+      ] else ...[
+        const Center(child: FreshoraLogo(size: 80)),
+        const SizedBox(height: 16),
+        const Text('FRESHORA', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 12),
+        const Text('Fresh fruits and vegetables for Talegaon. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
+      ],
+    ]),
+  );
+}
+
 enum _ProfilePhotoAction { camera, gallery, remove }
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.onSignOut});
+  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.orders = const [], this.onSignOut});
+  final List<OrderRecord> orders;
   final CustomerSession session;
   final List<CustomerAddress> addresses;
   final VoidCallback onManageAddresses;
@@ -2750,8 +2831,16 @@ class _ProfilePageState extends State<ProfilePage> {
     if (mounted) setState(() => _profileImageBase64 = null);
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
+  void _openMenu(BuildContext context, String feature) {
+    if (feature == 'My Orders') {
+      widget.onViewOrders();
+      return;
+    }
+    if (feature == 'Notifications') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders)));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileInformationPage(title: feature)));
   }
 
   String get _referralCode {
@@ -2904,7 +2993,7 @@ class _ProfilePageState extends State<ProfilePage> {
         .map((x) => Card(child: ListTile(
           title: Text(x),
           trailing: const Icon(Icons.chevron_right),
-          onTap: x == 'My Orders' ? widget.onViewOrders : () => _showComingSoon(context, x),
+          onTap: () => _openMenu(context, x),
         ))),
       const SizedBox(height: 10),
       OutlinedButton.icon(onPressed: widget.onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),

@@ -45,7 +45,7 @@ void main() {
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('My Profile'), findsOneWidget);
+    expect(find.text('Customer profile'), findsOneWidget);
     expect(find.text('9876543210'), findsOneWidget);
   });
 
