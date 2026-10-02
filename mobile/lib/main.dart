@@ -18,15 +18,18 @@ import 'widgets/freshora_logo.dart';
 import 'landing_page.dart';
 import 'location_service.dart';
 
-void main() => runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
+void main() =>
+    runApp(TalegaonFreshApp(authRepository: _createAuthRepository()));
 
 AuthRepository _createAuthRepository() =>
-    const String.fromEnvironment('AUTH_MODE', defaultValue: 'remote') == 'remote'
+    const String.fromEnvironment('AUTH_MODE', defaultValue: 'remote') ==
+            'remote'
         ? HttpAuthRepository()
         : const DemoAuthRepository();
 
 class CustomerSession {
-  const CustomerSession({required this.phone, required this.name, this.token, this.refreshToken});
+  const CustomerSession(
+      {required this.phone, required this.name, this.token, this.refreshToken});
   final String phone;
   final String name;
   final String? token;
@@ -40,6 +43,7 @@ class Product {
     required this.price,
     required this.icon,
     this.category = 'Other',
+    this.mrp,
     this.imageUrl,
   });
 
@@ -47,37 +51,150 @@ class Product {
   final double price;
   final IconData icon;
   final String category;
+  final double? mrp;
   final String? imageUrl;
 }
 
 bool _isFreshCategory(String category) =>
     const {'Vegetables', 'Fruits', 'Leafy Greens'}.contains(category);
 
-
 const Map<String, String> _productImageUrls = {
-  'tomato': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/400px-Tomato_je.jpg',
-  'potato': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Patates.jpg/400px-Patates.jpg',
-  'onion': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mixed_onions.jpg/400px-Mixed_onions.jpg',
-  'carrot': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/400px-Vegetable-Carrot-Bundle-wStalks.jpg',
-  'capsicum': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Green-Yellow-Red-Pepper-2009.jpg/400px-Green-Yellow-Red-Pepper-2009.jpg',
-  'cabbage': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cabbage_and_cross_section_on_white.jpg/400px-Cabbage_and_cross_section_on_white.jpg',
-  'cauliflower': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Chou-fleur_02.jpg/400px-Chou-fleur_02.jpg',
-  'ladyfinger': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hong_Kong_Okra_Aug_25_2012.JPG/400px-Hong_Kong_Okra_Aug_25_2012.JPG',
-  'green beans': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Heaps_of_beans.jpg/400px-Heaps_of_beans.jpg',
-  'spinach': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Spinacia_oleracea_Spinazie_bloeiend.jpg/400px-Spinacia_oleracea_Spinazie_bloeiend.jpg',
-  'coriander': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg/400px-Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg',
-  'green chilli': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Madame_Jeanette_and_other_chillies.jpg/400px-Madame_Jeanette_and_other_chillies.jpg',
-  'ginger': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Koeh-146-no_text.jpg/400px-Koeh-146-no_text.jpg',
-  'garlic': 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Allium_sativum_Woodwill_1793.jpg/400px-Allium_sativum_Woodwill_1793.jpg',
-  'banana': 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Bananavarieties.jpg/400px-Bananavarieties.jpg',
-  'apple': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/400px-Pink_lady_and_cross_section.jpg',
-  'orange': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Oranges_-_whole-halved-segment.jpg/400px-Oranges_-_whole-halved-segment.jpg',
-  'grapes': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Grapes%2C_Rostov-on-Don%2C_Russia.jpg/400px-Grapes%2C_Rostov-on-Don%2C_Russia.jpg',
-  'pomegranate': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Pomegranate_Juice_%282019%29.jpg/400px-Pomegranate_Juice_%282019%29.jpg',
-  'papaya': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg/400px-Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg',
+  'tomato':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/400px-Tomato_je.jpg',
+  'potato':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Patates.jpg/400px-Patates.jpg',
+  'onion':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mixed_onions.jpg/400px-Mixed_onions.jpg',
+  'carrot':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vegetable-Carrot-Bundle-wStalks.jpg/400px-Vegetable-Carrot-Bundle-wStalks.jpg',
+  'capsicum':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Green-Yellow-Red-Pepper-2009.jpg/400px-Green-Yellow-Red-Pepper-2009.jpg',
+  'cabbage':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cabbage_and_cross_section_on_white.jpg/400px-Cabbage_and_cross_section_on_white.jpg',
+  'cauliflower':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Chou-fleur_02.jpg/400px-Chou-fleur_02.jpg',
+  'ladyfinger':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hong_Kong_Okra_Aug_25_2012.JPG/400px-Hong_Kong_Okra_Aug_25_2012.JPG',
+  'green beans':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Heaps_of_beans.jpg/400px-Heaps_of_beans.jpg',
+  'spinach':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Spinacia_oleracea_Spinazie_bloeiend.jpg/400px-Spinacia_oleracea_Spinazie_bloeiend.jpg',
+  'coriander':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg/400px-Coriandrum_sativum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-193.jpg',
+  'green chilli':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Madame_Jeanette_and_other_chillies.jpg/400px-Madame_Jeanette_and_other_chillies.jpg',
+  'ginger':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Koeh-146-no_text.jpg/400px-Koeh-146-no_text.jpg',
+  'garlic':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Allium_sativum_Woodwill_1793.jpg/400px-Allium_sativum_Woodwill_1793.jpg',
+  'banana':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Bananavarieties.jpg/400px-Bananavarieties.jpg',
+  'apple':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Pink_lady_and_cross_section.jpg/400px-Pink_lady_and_cross_section.jpg',
+  'orange':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Oranges_-_whole-halved-segment.jpg/400px-Oranges_-_whole-halved-segment.jpg',
+  'grapes':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Grapes%2C_Rostov-on-Don%2C_Russia.jpg/400px-Grapes%2C_Rostov-on-Don%2C_Russia.jpg',
+  'pomegranate':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Pomegranate_Juice_%282019%29.jpg/400px-Pomegranate_Juice_%282019%29.jpg',
+  'papaya':
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg/400px-Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg',
 };
 
-String? _imageUrlForProduct(String name) => _productImageUrls[name.toLowerCase()];
+String? _imageUrlForProduct(String name) =>
+    _productImageUrls[name.toLowerCase()];
+
+class _CatalogFallback {
+  const _CatalogFallback({required this.imageUrl, this.mrp});
+
+  final String imageUrl;
+  final double? mrp;
+}
+
+const Map<String, _CatalogFallback> _packagedProductFallbacks = {
+  'amul taaza milk': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=800&q=80',
+      mrp: 60),
+  'amul masti dahi': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80',
+      mrp: 50),
+  'amul fresh malai paneer': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1625944525533-473f1a3d54e7?auto=format&fit=crop&w=800&q=80',
+      mrp: 95),
+  'amul butter': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=800&q=80',
+      mrp: 63),
+  'amul pure milk cheese slices': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=800&q=80',
+      mrp: 137),
+  "lay's cream & onion chips": _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80',
+      mrp: 20),
+  'bingo tedhe medhe': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=800&q=80',
+      mrp: 20),
+  'parle hide & seek': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80',
+      mrp: 30),
+  'britannia jim jam': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80',
+      mrp: 35),
+  "chheda's banana chips": _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?auto=format&fit=crop&w=800&q=80',
+      mrp: 70),
+  'aashirvaad whole wheat atta': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=800&q=80',
+      mrp: 299),
+  'india gate rozana basmati rice': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1586208958839-06c17cacdf08?auto=format&fit=crop&w=800&q=80',
+      mrp: 490),
+  'tata salt iodised': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=800&q=80',
+      mrp: 29),
+  'sugar': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=800&q=80'),
+  'tata sampann toor dal': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1515543904379-3d757afe72e8?auto=format&fit=crop&w=800&q=80',
+      mrp: 200),
+  'fortune sunlite sunflower oil': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=800&q=80',
+      mrp: 177),
+  'maggi masala noodles': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=800&q=80',
+      mrp: 60),
+  'tata tea gold': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=800&q=80',
+      mrp: 310),
+  'harvest gold atta bread': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+      mrp: 65),
+  'catch coriander powder': _CatalogFallback(
+      imageUrl:
+          'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=800&q=80',
+      mrp: 32),
+};
+
+_CatalogFallback? _packagedFallbackFor(String name) =>
+    _packagedProductFallbacks[name.trim().toLowerCase()];
 
 // Clear product photos supplied for the catalogue. Matching is keyword based so
 // API names such as "Red Onions" and "Green Beans (500 g)" use the right photo.
@@ -171,14 +288,19 @@ String? _assetPathForProduct(String name) {
   return null;
 }
 
-
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onAuthenticated, this.authRepository = const DemoAuthRepository(), this.onBack, this.initialRegisterMode = false});
+  const LoginPage(
+      {super.key,
+      required this.onAuthenticated,
+      this.authRepository = const DemoAuthRepository(),
+      this.onBack,
+      this.initialRegisterMode = false});
   final ValueChanged<CustomerSession> onAuthenticated;
   final AuthRepository authRepository;
   final VoidCallback? onBack;
   final bool initialRegisterMode;
-  @override State<LoginPage> createState() => _LoginPageState();
+  @override
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -195,7 +317,13 @@ class _LoginPageState extends State<LoginPage> {
     registerMode = widget.initialRegisterMode;
   }
 
-  @override void dispose() { phone.dispose(); pin.dispose(); name.dispose(); super.dispose(); }
+  @override
+  void dispose() {
+    phone.dispose();
+    pin.dispose();
+    name.dispose();
+    super.dispose();
+  }
 
   Future<void> submit() async {
     FocusScope.of(context).unfocus();
@@ -204,23 +332,42 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => error = 'Enter a valid 10-digit Indian mobile number.');
       return;
     }
-    if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) { setState(() => error = 'PIN must contain exactly 6 digits.'); return; }
-    if (registerMode && name.text.trim().isEmpty) { setState(() => error = 'Enter your name.'); return; }
-    setState(() { loading = true; error = null; });
+    if (!RegExp(r'^\d{6}$').hasMatch(pin.text)) {
+      setState(() => error = 'PIN must contain exactly 6 digits.');
+      return;
+    }
+    if (registerMode && name.text.trim().isEmpty) {
+      setState(() => error = 'Enter your name.');
+      return;
+    }
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final session = registerMode
-          ? await widget.authRepository.register(normalized, pin.text, name.text.trim())
+          ? await widget.authRepository
+              .register(normalized, pin.text, name.text.trim())
           : await widget.authRepository.login(normalized, pin.text);
       if (!mounted) return;
       widget.onAuthenticated(session);
     } on AuthException catch (e) {
-      if (mounted) setState(() { loading = false; error = e.message; });
+      if (mounted)
+        setState(() {
+          loading = false;
+          error = e.message;
+        });
     } catch (_) {
-      if (mounted) setState(() { loading = false; error = 'Something went wrong. Please try again.'; });
+      if (mounted)
+        setState(() {
+          loading = false;
+          error = 'Something went wrong. Please try again.';
+        });
     }
   }
 
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
@@ -232,79 +379,147 @@ class _LoginPageState extends State<LoginPage> {
               child: Card(
                 elevation: 0,
                 margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28)),
                 child: Padding(
                   padding: const EdgeInsets.all(28),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    if (widget.onBack != null)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: 'Back to home',
-                          onPressed: widget.onBack,
-                          icon: const Icon(Icons.arrow_back_rounded),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (widget.onBack != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              tooltip: 'Back to home',
+                              onPressed: widget.onBack,
+                              icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                          ),
+                        const Center(child: FreshoraLogo(size: 82)),
+                        const SizedBox(height: 16),
+                        Text('FRESHORA',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 6),
+                        Text(
+                            registerMode
+                                ? 'Create your secure customer account.'
+                                : 'Welcome back. Sign in securely.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(color: cs.onSurfaceVariant)),
+                        const SizedBox(height: 22),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(
+                                value: false,
+                                label: Text('Sign in'),
+                                icon: Icon(Icons.login_rounded)),
+                            ButtonSegment(
+                                value: true,
+                                label: Text('Create account'),
+                                icon: Icon(Icons.person_add_alt_1_rounded)),
+                          ],
+                          selected: {registerMode},
+                          onSelectionChanged: loading
+                              ? null
+                              : (v) => setState(() {
+                                    registerMode = v.first;
+                                    error = null;
+                                  }),
                         ),
-                      ),
-                    const Center(child: FreshoraLogo(size: 82)),
-                    const SizedBox(height: 16),
-                    Text('FRESHORA', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 6),
-                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
-                    const SizedBox(height: 22),
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('Sign in'), icon: Icon(Icons.login_rounded)),
-                        ButtonSegment(value: true, label: Text('Create account'), icon: Icon(Icons.person_add_alt_1_rounded)),
-                      ],
-                      selected: {registerMode},
-                      onSelectionChanged: loading ? null : (v) => setState(() { registerMode = v.first; error = null; }),
-                    ),
-                    const SizedBox(height: 22),
-                    if (registerMode) ...[
-                      TextField(controller: name, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_outline_rounded))),
-                      const SizedBox(height: 14),
-                    ],
-                    TextField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, decoration: const InputDecoration(labelText: 'Mobile number', prefixText: '+91 ', counterText: '', prefixIcon: Icon(Icons.phone_android_rounded))),
-                    const SizedBox(height: 14),
-                    TextField(
-                      controller: pin,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      obscureText: obscure,
-                      decoration: InputDecoration(
-                        labelText: '6-digit PIN',
-                        counterText: '',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
-                        suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: cs.surfaceContainerHighest, borderRadius: BorderRadius.circular(14)),
-                      child: const Row(children: [
-                        Icon(Icons.verified_user_outlined, size: 19),
-                        SizedBox(width: 10),
-                        Expanded(child: Text('Your PIN is protected with one-way password hashing. Session tokens stay in secure device storage.', style: TextStyle(fontSize: 12.5))),
+                        const SizedBox(height: 22),
+                        if (registerMode) ...[
+                          TextField(
+                              controller: name,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                  labelText: 'Full name',
+                                  prefixIcon:
+                                      Icon(Icons.person_outline_rounded))),
+                          const SizedBox(height: 14),
+                        ],
+                        TextField(
+                            controller: phone,
+                            keyboardType: TextInputType.phone,
+                            maxLength: 10,
+                            decoration: const InputDecoration(
+                                labelText: 'Mobile number',
+                                prefixText: '+91 ',
+                                counterText: '',
+                                prefixIcon: Icon(Icons.phone_android_rounded))),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: pin,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          obscureText: obscure,
+                          decoration: InputDecoration(
+                            labelText: '6-digit PIN',
+                            counterText: '',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded),
+                            suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => obscure = !obscure),
+                                icon: Icon(obscure
+                                    ? Icons.visibility_rounded
+                                    : Icons.visibility_off_rounded)),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(14)),
+                          child: const Row(children: [
+                            Icon(Icons.verified_user_outlined, size: 19),
+                            SizedBox(width: 10),
+                            Expanded(
+                                child: Text(
+                                    'Your PIN is protected with one-way password hashing. Session tokens stay in secure device storage.',
+                                    style: TextStyle(fontSize: 12.5))),
+                          ]),
+                        ),
+                        if (error != null) ...[
+                          const SizedBox(height: 14),
+                          Text(error!,
+                              style: TextStyle(
+                                  color: cs.error,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: loading ? null : submit,
+                          style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(54),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16))),
+                          child: loading
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2))
+                              : Text(registerMode
+                                  ? 'Create secure account'
+                                  : 'Sign in'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AdminLoginPage())),
+                          icon: const Icon(Icons.storefront_outlined, size: 18),
+                          label: const Text('Store Admin Login'),
+                        ),
                       ]),
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: 14),
-                      Text(error!, style: TextStyle(color: cs.error, fontWeight: FontWeight.w600)),
-                    ],
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: loading ? null : submit,
-                      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                      child: loading ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(registerMode ? 'Create secure account' : 'Sign in'),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminLoginPage())),
-                      icon: const Icon(Icons.storefront_outlined, size: 18),
-                      label: const Text('Store Admin Login'),
-                    ),
-                  ]),
                 ),
               ),
             ),
@@ -316,29 +531,37 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class CustomerAddress {
-  const CustomerAddress({this.id, required this.label, required this.fullAddress, required this.city, required this.pincode, this.landmark = '', this.isDefault = false});
+  const CustomerAddress(
+      {this.id,
+      required this.label,
+      required this.fullAddress,
+      required this.city,
+      required this.pincode,
+      this.landmark = '',
+      this.isDefault = false});
   final int? id;
   final String label, fullAddress, city, pincode, landmark;
   final bool isDefault;
 
-  String get displayAddress => [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
+  String get displayAddress =>
+      [fullAddress, city, pincode].where((x) => x.isNotEmpty).join(', ');
 
   Map<String, dynamic> toApiJson() => {
-    'label': label,
-    'address': fullAddress + (landmark.isEmpty ? '' : ', ' + landmark),
-    'city': city,
-    'pincode': pincode,
-    'is_default': isDefault,
-  };
+        'label': label,
+        'address': fullAddress + (landmark.isEmpty ? '' : ', ' + landmark),
+        'city': city,
+        'pincode': pincode,
+        'is_default': isDefault,
+      };
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'label': label,
-    'fullAddress': fullAddress,
-    'city': city,
-    'pincode': pincode,
-    'landmark': landmark,
-  };
+        'id': id,
+        'label': label,
+        'fullAddress': fullAddress,
+        'city': city,
+        'pincode': pincode,
+        'landmark': landmark,
+      };
 
   static CustomerAddress? fromApiJson(dynamic value) {
     if (value is! Map) return null;
@@ -346,8 +569,17 @@ class CustomerAddress {
     final address = value['address'];
     final city = value['city'];
     final pincode = value['pincode'];
-    if (label is! String || address is! String || city is! String || pincode is! String) return null;
-    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: address, city: city, pincode: pincode, isDefault: value['is_default'] == true);
+    if (label is! String ||
+        address is! String ||
+        city is! String ||
+        pincode is! String) return null;
+    return CustomerAddress(
+        id: value['id'] is num ? (value['id'] as num).toInt() : null,
+        label: label,
+        fullAddress: address,
+        city: city,
+        pincode: pincode,
+        isDefault: value['is_default'] == true);
   }
 
   static CustomerAddress? fromJson(dynamic value) {
@@ -357,8 +589,18 @@ class CustomerAddress {
     final city = value['city'];
     final pincode = value['pincode'];
     final landmark = value['landmark'];
-    if (label is! String || fullAddress is! String || city is! String || pincode is! String) return null;
-    return CustomerAddress(id: value['id'] is num ? (value['id'] as num).toInt() : null, label: label, fullAddress: fullAddress, city: city, pincode: pincode, landmark: landmark is String ? landmark : '', isDefault: value['isDefault'] == true);
+    if (label is! String ||
+        fullAddress is! String ||
+        city is! String ||
+        pincode is! String) return null;
+    return CustomerAddress(
+        id: value['id'] is num ? (value['id'] as num).toInt() : null,
+        label: label,
+        fullAddress: fullAddress,
+        city: city,
+        pincode: pincode,
+        landmark: landmark is String ? landmark : '',
+        isDefault: value['isDefault'] == true);
   }
 }
 
@@ -378,11 +620,11 @@ class OrderLine {
   double get total => price * quantity;
 
   Map<String, dynamic> toJson() => {
-    'name': name,
-    'unit': unit,
-    'price': price,
-    'quantity': quantity,
-  };
+        'name': name,
+        'unit': unit,
+        'price': price,
+        'quantity': quantity,
+      };
 
   static OrderLine? fromJson(dynamic value) {
     if (value is! Map) return null;
@@ -390,8 +632,16 @@ class OrderLine {
     final unit = value['unit'];
     final price = value['price'];
     final quantity = value['quantity'];
-    if (name is! String || unit is! String || price is! num || quantity is! num || quantity < 1) return null;
-    return OrderLine(name: name, unit: unit, price: price.toDouble(), quantity: quantity.toInt());
+    if (name is! String ||
+        unit is! String ||
+        price is! num ||
+        quantity is! num ||
+        quantity < 1) return null;
+    return OrderLine(
+        name: name,
+        unit: unit,
+        price: price.toDouble(),
+        quantity: quantity.toInt());
   }
 }
 
@@ -417,15 +667,15 @@ class OrderRecord {
   final String? paymentLinkUrl;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'total': total,
-    'payment': payment,
-    'address': address,
-    'createdAt': createdAt.toIso8601String(),
-    'status': status,
-    'paymentLinkUrl': paymentLinkUrl,
-    'items': items.map((item) => item.toJson()).toList(),
-  };
+        'id': id,
+        'total': total,
+        'payment': payment,
+        'address': address,
+        'createdAt': createdAt.toIso8601String(),
+        'status': status,
+        'paymentLinkUrl': paymentLinkUrl,
+        'items': items.map((item) => item.toJson()).toList(),
+      };
 
   static OrderRecord fromApiJson(Map value) {
     final rawItems = value['items'];
@@ -437,8 +687,16 @@ class OrderRecord {
         final unit = raw['unit'];
         final price = raw['unit_price'];
         final quantity = raw['quantity'];
-        if (name is String && unit is String && price is num && quantity is num && quantity > 0) {
-          items.add(OrderLine(name: name, unit: unit, price: price.toDouble(), quantity: quantity.toInt()));
+        if (name is String &&
+            unit is String &&
+            price is num &&
+            quantity is num &&
+            quantity > 0) {
+          items.add(OrderLine(
+              name: name,
+              unit: unit,
+              price: price.toDouble(),
+              quantity: quantity.toInt()));
         }
       }
     }
@@ -447,10 +705,16 @@ class OrderRecord {
       total: value['total'] is num ? (value['total'] as num).toDouble() : 0,
       payment: value['payment_method'] is String ? value['payment_method'] : '',
       address: value['address'] is String ? value['address'] : '',
-      createdAt: DateTime.tryParse(value['created_at'] is String ? value['created_at'] as String : '') ?? DateTime.now(),
-      status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
+      createdAt: DateTime.tryParse(value['created_at'] is String
+              ? value['created_at'] as String
+              : '') ??
+          DateTime.now(),
+      status:
+          value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
-      paymentLinkUrl: value['payment_link_url'] is String ? value['payment_link_url'] as String : null,
+      paymentLinkUrl: value['payment_link_url'] is String
+          ? value['payment_link_url'] as String
+          : null,
     );
   }
 
@@ -462,19 +726,28 @@ class OrderRecord {
     final address = value['address'];
     final createdAt = value['createdAt'];
     final rawItems = value['items'];
-    if (id is! String || total is! num || payment is! String || address is! String || createdAt is! String) return null;
+    if (id is! String ||
+        total is! num ||
+        payment is! String ||
+        address is! String ||
+        createdAt is! String) return null;
     final date = DateTime.tryParse(createdAt);
     if (date == null) return null;
-    final items = rawItems is List ? rawItems.map(OrderLine.fromJson).whereType<OrderLine>().toList() : const <OrderLine>[];
+    final items = rawItems is List
+        ? rawItems.map(OrderLine.fromJson).whereType<OrderLine>().toList()
+        : const <OrderLine>[];
     return OrderRecord(
       id: id,
       total: total.toDouble(),
       payment: payment,
       address: address,
       createdAt: date,
-      status: value['status'] is String ? value['status'] as String : 'CONFIRMED',
+      status:
+          value['status'] is String ? value['status'] as String : 'CONFIRMED',
       items: items,
-      paymentLinkUrl: value['paymentLinkUrl'] is String ? value['paymentLinkUrl'] as String : null,
+      paymentLinkUrl: value['paymentLinkUrl'] is String
+          ? value['paymentLinkUrl'] as String
+          : null,
     );
   }
 }
@@ -486,7 +759,8 @@ class CartItem {
 }
 
 class TalegaonFreshApp extends StatefulWidget {
-  const TalegaonFreshApp({super.key, this.authRepository = const DemoAuthRepository()});
+  const TalegaonFreshApp(
+      {super.key, this.authRepository = const DemoAuthRepository()});
   final AuthRepository authRepository;
 
   @override
@@ -543,25 +817,28 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'FRESHORA',
-    debugShowCheckedModeBanner: false,
-    theme: _buildTheme(),
-    home: showSplash
-        ? const SplashScreen()
-        : session == null
-            ? showAuthentication
-                ? LoginPage(
-                    onAuthenticated: _handleAuthenticated,
-                    authRepository: widget.authRepository,
-                    initialRegisterMode: startWithCreateAccount,
-                    onBack: () => setState(() => showAuthentication = false),
-                  )
-                : TalegaonLandingPage(
-                    onCreateAccount: () => _openAuthentication(createAccount: true),
-                    onSignIn: () => _openAuthentication(createAccount: false),
-                  )
-            : AppShell(session: session!, onSignOut: _signOut),
-  );
+        title: 'FRESHORA',
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(),
+        home: showSplash
+            ? const SplashScreen()
+            : session == null
+                ? showAuthentication
+                    ? LoginPage(
+                        onAuthenticated: _handleAuthenticated,
+                        authRepository: widget.authRepository,
+                        initialRegisterMode: startWithCreateAccount,
+                        onBack: () =>
+                            setState(() => showAuthentication = false),
+                      )
+                    : TalegaonLandingPage(
+                        onCreateAccount: () =>
+                            _openAuthentication(createAccount: true),
+                        onSignIn: () =>
+                            _openAuthentication(createAccount: false),
+                      )
+                : AppShell(session: session!, onSignOut: _signOut),
+      );
 }
 
 const _brandGreen = Color(0xFF168447);
@@ -580,7 +857,8 @@ ThemeData _buildTheme() {
       foregroundColor: Colors.black87,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w800),
+      titleTextStyle: TextStyle(
+          color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w800),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
@@ -613,7 +891,8 @@ ThemeData _buildTheme() {
       backgroundColor: Colors.white,
       disabledColor: const Color(0xFFF0F3F1),
       checkmarkColor: Colors.white,
-      labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+      labelStyle:
+          const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
       side: const BorderSide(color: Color(0xFFD7E0DA)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -623,16 +902,25 @@ ThemeData _buildTheme() {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE1E8E3))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _brandGreen, width: 1.6)),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE1E8E3))),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _brandGreen, width: 1.6)),
     ),
     navigationBarTheme: NavigationBarThemeData(
       labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-        fontSize: 11,
-        fontWeight: states.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w500,
-        color: states.contains(WidgetState.selected) ? _brandGreenDark : Colors.black54,
-      )),
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? _brandGreenDark
+                : Colors.black54,
+          )),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
@@ -646,38 +934,49 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFEFF8F0), Color(0xFFD8EFDD)],
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(28),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFEFF8F0), Color(0xFFD8EFDD)],
             ),
-            const SizedBox(height: 24),
-            const Text('FRESHORA', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF168447))),
-            const SizedBox(height: 8),
-            const Text('Fresh. Local. For a Healthier You.', style: TextStyle(fontSize: 15, color: Colors.black54)),
-          ],
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: const BoxDecoration(
+                      color: Colors.white, shape: BoxShape.circle),
+                  child:
+                      const Icon(Icons.eco, size: 72, color: Color(0xFF168447)),
+                ),
+                const SizedBox(height: 24),
+                const Text('FRESHORA',
+                    style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF168447))),
+                const SizedBox(height: 8),
+                const Text('Fresh. Local. For a Healthier You.',
+                    style: TextStyle(fontSize: 15, color: Colors.black54)),
+              ],
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class AppShell extends StatefulWidget {
-  AppShell({super.key, ProductRepository? repository, required this.session, this.onSignOut})
+  AppShell(
+      {super.key,
+      ProductRepository? repository,
+      required this.session,
+      this.onSignOut})
       : repository = repository ?? HttpProductRepository(token: session.token);
 
   final ProductRepository repository;
@@ -700,7 +999,8 @@ class _AppShellState extends State<AppShell> {
   final orders = <OrderRecord>[];
   late final HttpCustomerRepository customerApi;
 
-  bool get _useRemoteCustomerApi => (widget.session.token ?? '').split('.').length == 3;
+  bool get _useRemoteCustomerApi =>
+      (widget.session.token ?? '').split('.').length == 3;
   final favorites = <String>{};
   String? cartSyncError;
   String? detectedLocation;
@@ -718,9 +1018,12 @@ class _AppShellState extends State<AppShell> {
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
-  String get _ordersStorageKey => 'talegaon_fresh_orders_${widget.session.phone}';
-  String get _addressesStorageKey => 'talegaon_fresh_addresses_${widget.session.phone}';
-  String get _favoritesStorageKey => 'talegaon_fresh_favorites_${widget.session.phone}';
+  String get _ordersStorageKey =>
+      'talegaon_fresh_orders_${widget.session.phone}';
+  String get _addressesStorageKey =>
+      'talegaon_fresh_addresses_${widget.session.phone}';
+  String get _favoritesStorageKey =>
+      'talegaon_fresh_favorites_${widget.session.phone}';
 
   Future<void> _clearRemoteLocalState() async {
     if (!_useRemoteCustomerApi) return;
@@ -738,7 +1041,9 @@ class _AppShellState extends State<AppShell> {
         final remote = await customerApi.getCart(products);
         if (mounted) {
           setState(() {
-            cart..clear()..addAll(remote);
+            cart
+              ..clear()
+              ..addAll(remote);
             cartSyncError = null;
           });
         }
@@ -751,7 +1056,9 @@ class _AppShellState extends State<AppShell> {
         if (mounted) setState(() => cartSyncError = e.message);
         return;
       } catch (_) {
-        if (mounted) setState(() => cartSyncError = 'Could not load your cart. Please retry.');
+        if (mounted)
+          setState(
+              () => cartSyncError = 'Could not load your cart. Please retry.');
         return;
       }
     }
@@ -768,22 +1075,32 @@ class _AppShellState extends State<AppShell> {
         final unit = item['unit'];
         final price = item['price'];
         final quantity = item['quantity'];
-        if (name is! String || unit is! String || price is! num || quantity is! num || quantity < 1) continue;
+        if (name is! String ||
+            unit is! String ||
+            price is! num ||
+            quantity is! num ||
+            quantity < 1) continue;
         restored.add(CartItem(
           Product(
             name: name,
             unit: unit,
             price: price.toDouble(),
             icon: _iconForProduct(name),
-            category: item['category'] is String ? item['category'] as String : 'Other',
+            category: item['category'] is String
+                ? item['category'] as String
+                : 'Other',
+            mrp: item['mrp'] is num
+                ? (item['mrp'] as num).toDouble()
+                : _packagedFallbackFor(name)?.mrp,
             imageUrl: _imageUrlForProduct(name),
           ),
           quantity.toInt(),
         ));
       }
-      if (mounted) setState(() => cart
-        ..clear()
-        ..addAll(restored));
+      if (mounted)
+        setState(() => cart
+          ..clear()
+          ..addAll(restored));
     } catch (_) {
       await prefs.remove(_cartStorageKey);
     }
@@ -793,7 +1110,10 @@ class _AppShellState extends State<AppShell> {
     if (_useRemoteCustomerApi) {
       try {
         final remote = await customerApi.getAddresses();
-        if (mounted) setState(() => addresses..clear()..addAll(remote));
+        if (mounted)
+          setState(() => addresses
+            ..clear()
+            ..addAll(remote));
       } on CustomerApiException catch (e) {
         if (e.statusCode == 401) {
           widget.onSignOut?.call();
@@ -811,8 +1131,14 @@ class _AppShellState extends State<AppShell> {
     try {
       final items = jsonDecode(raw);
       if (items is! List) return;
-      final restored = items.map(CustomerAddress.fromJson).whereType<CustomerAddress>().toList();
-      if (mounted) setState(() => addresses..clear()..addAll(restored));
+      final restored = items
+          .map(CustomerAddress.fromJson)
+          .whereType<CustomerAddress>()
+          .toList();
+      if (mounted)
+        setState(() => addresses
+          ..clear()
+          ..addAll(restored));
     } catch (_) {
       await prefs.remove(_addressesStorageKey);
     }
@@ -821,7 +1147,8 @@ class _AppShellState extends State<AppShell> {
   Future<void> _persistAddresses() async {
     if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_addressesStorageKey, jsonEncode(addresses.map((address) => address.toJson()).toList()));
+    await prefs.setString(_addressesStorageKey,
+        jsonEncode(addresses.map((address) => address.toJson()).toList()));
   }
 
   Future<void> _loadFavorites() async {
@@ -831,8 +1158,12 @@ class _AppShellState extends State<AppShell> {
     try {
       final items = jsonDecode(raw);
       if (items is! List) return;
-      final restored = items.whereType<String>().where((name) => name.isNotEmpty).toSet();
-      if (mounted) setState(() => favorites..clear()..addAll(restored));
+      final restored =
+          items.whereType<String>().where((name) => name.isNotEmpty).toSet();
+      if (mounted)
+        setState(() => favorites
+          ..clear()
+          ..addAll(restored));
     } catch (_) {
       await prefs.remove(_favoritesStorageKey);
     }
@@ -847,7 +1178,10 @@ class _AppShellState extends State<AppShell> {
     if (_useRemoteCustomerApi) {
       try {
         final remote = await customerApi.getOrders();
-        if (mounted) setState(() => orders..clear()..addAll(remote));
+        if (mounted)
+          setState(() => orders
+            ..clear()
+            ..addAll(remote));
       } on CustomerApiException catch (e) {
         if (e.statusCode == 401) {
           widget.onSignOut?.call();
@@ -865,8 +1199,12 @@ class _AppShellState extends State<AppShell> {
     try {
       final items = jsonDecode(raw);
       if (items is! List) return;
-      final restored = items.map(OrderRecord.fromJson).whereType<OrderRecord>().toList();
-      if (mounted) setState(() => orders..clear()..addAll(restored));
+      final restored =
+          items.map(OrderRecord.fromJson).whereType<OrderRecord>().toList();
+      if (mounted)
+        setState(() => orders
+          ..clear()
+          ..addAll(restored));
     } catch (_) {
       await prefs.remove(_ordersStorageKey);
     }
@@ -875,14 +1213,16 @@ class _AppShellState extends State<AppShell> {
   Future<void> _persistOrders() async {
     if (_useRemoteCustomerApi) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_ordersStorageKey, jsonEncode(orders.map((order) => order.toJson()).toList()));
+    await prefs.setString(_ordersStorageKey,
+        jsonEncode(orders.map((order) => order.toJson()).toList()));
   }
 
   Future<void> _persistCart() async {
     if (_useRemoteCustomerApi) {
       try {
         await customerApi.replaceCart(cart);
-        if (mounted && cartSyncError != null) setState(() => cartSyncError = null);
+        if (mounted && cartSyncError != null)
+          setState(() => cartSyncError = null);
       } on CustomerApiException catch (e) {
         if (e.statusCode == 401) {
           widget.onSignOut?.call();
@@ -890,37 +1230,62 @@ class _AppShellState extends State<AppShell> {
         }
         if (mounted) setState(() => cartSyncError = e.message);
       } catch (_) {
-        if (mounted) setState(() => cartSyncError = 'Could not sync your cart. Please retry.');
+        if (mounted)
+          setState(
+              () => cartSyncError = 'Could not sync your cart. Please retry.');
       }
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    final data = cart.map((item) => <String, dynamic>{
-      'name': item.product.name,
-      'unit': item.product.unit,
-      'price': item.product.price,
-      'category': item.product.category,
-      'quantity': item.quantity,
-    }).toList();
+    final data = cart
+        .map((item) => <String, dynamic>{
+              'name': item.product.name,
+              'unit': item.product.unit,
+              'price': item.product.price,
+              'category': item.product.category,
+              if (item.product.mrp != null) 'mrp': item.product.mrp,
+              'quantity': item.quantity,
+            })
+        .toList();
     await prefs.setString(_cartStorageKey, jsonEncode(data));
   }
 
-  Future<OrderRecord> _completeOrder(String payment, CustomerAddress address, double total) async {
+  Future<OrderRecord> _completeOrder(
+      String payment, CustomerAddress address, double total) async {
     if (_useRemoteCustomerApi) {
-      final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
+      final created = await customerApi.createOrder(
+          List<CartItem>.from(cart), address, payment);
       if (!mounted) return created;
-      setState(() { orders.insert(0, created); cart.clear(); });
+      setState(() {
+        orders.insert(0, created);
+        cart.clear();
+      });
       try {
         await customerApi.clearCart();
       } catch (_) {
         // The order is already committed. Keep it accessible for payment retry.
-        if (mounted) setState(() => cartSyncError = 'Order created. Please retry clearing your saved cart.');
+        if (mounted)
+          setState(() => cartSyncError =
+              'Order created. Please retry clearing your saved cart.');
       }
       return created;
     }
-    final orderId = 'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
-    final items = cart.map((item) => OrderLine(name: item.product.name, unit: item.product.unit, price: item.product.price, quantity: item.quantity)).toList();
-    final order = OrderRecord(id: orderId, total: total, payment: payment, address: address.displayAddress, createdAt: DateTime.now(), items: items);
+    final orderId =
+        'TF' + (DateTime.now().millisecondsSinceEpoch % 1000000).toString();
+    final items = cart
+        .map((item) => OrderLine(
+            name: item.product.name,
+            unit: item.product.unit,
+            price: item.product.price,
+            quantity: item.quantity))
+        .toList();
+    final order = OrderRecord(
+        id: orderId,
+        total: total,
+        payment: payment,
+        address: address.displayAddress,
+        createdAt: DateTime.now(),
+        items: items);
     setState(() {
       orders.insert(0, order);
       cart.clear();
@@ -949,17 +1314,19 @@ class _AppShellState extends State<AppShell> {
       final apiProducts = await widget.repository.fetchProducts();
       if (!mounted) return;
       setState(() {
-        products = apiProducts
-            .where((p) => p.inStock)
-            .map((p) => Product(
-                  name: p.name,
-                  unit: p.unit,
-                  price: p.price,
-                  icon: _iconForProduct(p.name),
-                  category: p.category,
-                  imageUrl: p.imageUrl ?? _imageUrlForProduct(p.name),
-                ))
-            .toList();
+        products = apiProducts.where((p) => p.inStock).map((p) {
+          final fallback = _packagedFallbackFor(p.name);
+          return Product(
+            name: p.name,
+            unit: p.unit,
+            price: p.price,
+            icon: _iconForProduct(p.name),
+            category: p.category,
+            mrp: p.mrp ?? fallback?.mrp,
+            imageUrl:
+                p.imageUrl ?? fallback?.imageUrl ?? _imageUrlForProduct(p.name),
+          );
+        }).toList();
         loading = false;
       });
     } catch (e) {
@@ -1062,23 +1429,81 @@ class _AppShellState extends State<AppShell> {
   int get count => cart.fold(0, (sum, x) => sum + x.quantity);
 
   void _openProduct(Product product) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: product, onAdd: add)));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => ProductDetailsPage(product: product, onAdd: add)));
   }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, orders: orders, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
-      ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
-      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, onContinueShopping: () => setState(() => tab = 0), api: _useRemoteCustomerApi ? customerApi : null),
-      OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
+      HomePage(
+          products: products,
+          orders: orders,
+          loading: loading,
+          error: error,
+          onRetry: _loadProducts,
+          onAdd: add,
+          onOpenProduct: _openProduct,
+          favorites: favorites,
+          onToggleFavorite: toggleFavorite,
+          location: detectedLocation,
+          quantityFor: quantityFor,
+          onIncrementProduct: incrementProduct,
+          onDecrementProduct: decrementProduct),
+      ProductsPage(
+          products: products,
+          loading: loading,
+          error: error,
+          onRetry: _loadProducts,
+          onAdd: add,
+          onOpenProduct: _openProduct,
+          favorites: favorites,
+          onToggleFavorite: toggleFavorite,
+          quantityFor: quantityFor,
+          onIncrementProduct: incrementProduct,
+          onDecrementProduct: decrementProduct),
+      CartPage(
+          cart: cart,
+          onIncrement: _incrementCartItem,
+          onDecrement: _decrementCartItem,
+          onRemove: _removeCartItem,
+          syncError: cartSyncError,
+          onRetrySync: _persistCart,
+          addresses: addresses,
+          onOrderPlaced: _completeOrder,
+          onContinueShopping: () => setState(() => tab = 0),
+          api: _useRemoteCustomerApi ? customerApi : null),
+      OrdersPage(
+          orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
         orders: orders,
-        onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
-        onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct))),
+        onManageAddresses: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => AddressBookPage(
+                    addresses: addresses,
+                    api: _useRemoteCustomerApi ? customerApi : null,
+                    onChanged: () {
+                      setState(() {});
+                      _persistAddresses();
+                    }))),
+        onManageFavorites: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => FavoritesPage(
+                    products: products
+                        .where((p) => favorites.contains(p.name))
+                        .toList(),
+                    onAdd: add,
+                    onToggleFavorite: toggleFavorite,
+                    quantityFor: quantityFor,
+                    onIncrementProduct: incrementProduct,
+                    onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
       ),
@@ -1088,7 +1513,12 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, -4))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, -4))
+          ],
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -1099,16 +1529,34 @@ class _AppShellState extends State<AppShell> {
             backgroundColor: Colors.white,
             elevation: 0,
             destinations: [
-              const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-              const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Products'),
+              const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home'),
+              const NavigationDestination(
+                  icon: Icon(Icons.storefront_outlined),
+                  selectedIcon: Icon(Icons.storefront),
+                  label: 'Products'),
               NavigationDestination(
-                icon: Badge(isLabelVisible: count > 0, label: Text(count.toString()), child: const Icon(Icons.shopping_cart_outlined)),
+                icon: Badge(
+                    isLabelVisible: count > 0,
+                    label: Text(count.toString()),
+                    child: const Icon(Icons.shopping_cart_outlined)),
                 selectedIcon: const Icon(Icons.shopping_cart),
                 label: 'Cart',
               ),
-              const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
-              const NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'AI'),
-              const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+              const NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Orders'),
+              const NavigationDestination(
+                  icon: Icon(Icons.auto_awesome_outlined),
+                  selectedIcon: Icon(Icons.auto_awesome),
+                  label: 'AI'),
+              const NavigationDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profile'),
             ],
           ),
         ),
@@ -1118,7 +1566,21 @@ class _AppShellState extends State<AppShell> {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.products, required this.orders, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
+  const HomePage(
+      {super.key,
+      required this.products,
+      required this.orders,
+      required this.loading,
+      this.error,
+      required this.onRetry,
+      required this.onAdd,
+      required this.onOpenProduct,
+      required this.favorites,
+      required this.onToggleFavorite,
+      this.location,
+      required this.quantityFor,
+      required this.onIncrementProduct,
+      required this.onDecrementProduct});
   final List<Product> products;
   final List<OrderRecord> orders;
   final bool loading;
@@ -1149,114 +1611,182 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
-    final visibleProducts = widget.products.where((product) =>
-        query.isEmpty ||
-        product.name.toLowerCase().contains(query) ||
-        product.unit.toLowerCase().contains(query)).toList();
+    final visibleProducts = widget.products
+        .where((product) =>
+            query.isEmpty ||
+            product.name.toLowerCase().contains(query) ||
+            product.unit.toLowerCase().contains(query))
+        .toList();
     return CustomScrollView(
-    slivers: [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-        sliver: SliverToBoxAdapter(
-          child: Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset('assets/images/app_icon.png', width: 46, height: 46),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-              Row(children: [
-                if (widget.location != null) ...[
-                  const Icon(Icons.location_on, size: 14, color: Colors.black54),
-                  const SizedBox(width: 2),
-                ],
-                Flexible(child: Text(widget.location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
-              ]),
-            ])),
-            IconButton(
-              tooltip: 'Notifications',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders))),
-              icon: Badge(
-                isLabelVisible: widget.orders.any((order) => order.status != 'DELIVERED'),
-                child: const Icon(Icons.notifications_none),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+          sliver: SliverToBoxAdapter(
+            child: Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset('assets/images/app_icon.png',
+                    width: 46, height: 46),
               ),
-            ),
-          ]),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-        sliver: SliverToBoxAdapter(
-          child: TextField(
-            controller: _searchController,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'Search vegetables, dairy, snacks, grocery...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: query.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Clear search',
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
-              filled: true, fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            ),
-          ),
-        ),
-      ),
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        sliver: SliverToBoxAdapter(
-          child: Container(
-            height: 165,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(fit: StackFit.expand, children: [
-              Image.asset('assets/images/products/leafy_greens.png', fit: BoxFit.cover),
-              const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
-                colors: [Color(0xD90B5B2C), Color(0x99168B45)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ))),
-              const Padding(
-                padding: EdgeInsets.all(22),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Fresh From\nLocal Farmers', style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)),
-                  SizedBox(height: 8),
-                  Text('Healthy food • Happier families', style: TextStyle(color: Colors.white70)),
-                  Spacer(),
-                  Text('Fresh • Local • Delivered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                ]),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    const Text('FRESHORA',
+                        style: TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.w800)),
+                    Row(children: [
+                      if (widget.location != null) ...[
+                        const Icon(Icons.location_on,
+                            size: 14, color: Colors.black54),
+                        const SizedBox(width: 2),
+                      ],
+                      Flexible(
+                          child: Text(
+                              widget.location ?? 'Freshness from farm to home',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.black54))),
+                    ]),
+                  ])),
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            NotificationsPage(orders: widget.orders))),
+                icon: Badge(
+                  isLabelVisible:
+                      widget.orders.any((order) => order.status != 'DELIVERED'),
+                  child: const Icon(Icons.notifications_none),
+                ),
               ),
             ]),
           ),
         ),
-      ),
-      const SliverPadding(
-        padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-        sliver: SliverToBoxAdapter(child: Text("Today's Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
-      ),
-      if (widget.loading)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
-      else if (widget.error != null)
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
-      else if (visibleProducts.isEmpty)
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(28), child: Center(child: Text(query.isEmpty ? 'No products are available today.' : 'No products match "$query".')))),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: visibleProducts[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(visibleProducts[i].name), onToggleFavorite: widget.onToggleFavorite, quantity: widget.quantityFor(visibleProducts[i]), onIncrement: () => widget.onIncrementProduct(visibleProducts[i]), onDecrement: () => widget.onDecrementProduct(visibleProducts[i])), childCount: visibleProducts.length > 4 ? 4 : visibleProducts.length),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          sliver: SliverToBoxAdapter(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search vegetables, dairy, snacks, grocery...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+          ),
         ),
-      ),
-    ],
-  );
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          sliver: SliverToBoxAdapter(
+            child: Container(
+              height: 165,
+              decoration:
+                  BoxDecoration(borderRadius: BorderRadius.circular(24)),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(fit: StackFit.expand, children: [
+                Image.asset('assets/images/products/leafy_greens.png',
+                    fit: BoxFit.cover),
+                const DecoratedBox(
+                    decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                  colors: [Color(0xD90B5B2C), Color(0x99168B45)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ))),
+                const Padding(
+                  padding: EdgeInsets.all(22),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Fresh From\nLocal Farmers',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w800)),
+                        SizedBox(height: 8),
+                        Text('Healthy food • Happier families',
+                            style: TextStyle(color: Colors.white70)),
+                        Spacer(),
+                        Text('Fresh • Local • Delivered',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ]),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+          sliver: SliverToBoxAdapter(
+              child: Text("Today's Products",
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+        ),
+        if (widget.loading)
+          const SliverToBoxAdapter(
+              child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator())))
+        else if (widget.error != null)
+          SliverToBoxAdapter(
+              child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: ErrorCard(
+                      message: widget.error!, onRetry: widget.onRetry)))
+        else if (visibleProducts.isEmpty)
+          SliverToBoxAdapter(
+              child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Center(
+                      child: Text(query.isEmpty
+                          ? 'No products are available today.'
+                          : 'No products match "$query".')))),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: .82),
+            delegate: SliverChildBuilderDelegate(
+                (context, i) => ProductCard(
+                    product: visibleProducts[i],
+                    onAdd: widget.onAdd,
+                    onOpen: widget.onOpenProduct,
+                    isFavorite:
+                        widget.favorites.contains(visibleProducts[i].name),
+                    onToggleFavorite: widget.onToggleFavorite,
+                    quantity: widget.quantityFor(visibleProducts[i]),
+                    onIncrement: () =>
+                        widget.onIncrementProduct(visibleProducts[i]),
+                    onDecrement: () =>
+                        widget.onDecrementProduct(visibleProducts[i])),
+                childCount:
+                    visibleProducts.length > 4 ? 4 : visibleProducts.length),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -1269,10 +1799,14 @@ class NotificationsPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Notifications')),
         body: orders.isEmpty
-            ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.black26),
+            ? const Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.notifications_none_rounded,
+                    size: 64, color: Colors.black26),
                 SizedBox(height: 12),
-                Text('No notifications yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text('No notifications yet',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 Text('Order and delivery updates will appear here.'),
               ]))
             : ListView.separated(
@@ -1281,10 +1815,14 @@ class NotificationsPage extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final order = orders[index];
-                  return Card(child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.shopping_bag_outlined)),
-                    title: Text('Order #${order.id} is ${order.status.replaceAll('_', ' ')}'),
-                    subtitle: Text('₹${order.total.toStringAsFixed(0)} • ${_formatDate(order.createdAt)}'),
+                  return Card(
+                      child: ListTile(
+                    leading: const CircleAvatar(
+                        child: Icon(Icons.shopping_bag_outlined)),
+                    title: Text(
+                        'Order #${order.id} is ${order.status.replaceAll('_', ' ')}'),
+                    subtitle: Text(
+                        '₹${order.total.toStringAsFixed(0)} • ${_formatDate(order.createdAt)}'),
                   ));
                 },
               ),
@@ -1292,7 +1830,19 @@ class NotificationsPage extends StatelessWidget {
 }
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
+  const ProductsPage(
+      {super.key,
+      required this.products,
+      required this.loading,
+      this.error,
+      required this.onRetry,
+      required this.onAdd,
+      required this.onOpenProduct,
+      required this.favorites,
+      required this.onToggleFavorite,
+      required this.quantityFor,
+      required this.onIncrementProduct,
+      required this.onDecrementProduct});
   final List<Product> products;
   final bool loading;
   final String? error;
@@ -1314,13 +1864,37 @@ class _ProductsPageState extends State<ProductsPage> {
   String category = 'All';
 
   static const leafyKeywords = [
-    'spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cilantro',
-    'mint', 'pudina', 'leafy greens', 'curry leaves', 'dill', 'shepu',
+    'spinach',
+    'palak',
+    'methi',
+    'lettuce',
+    'coriander',
+    'cilantro',
+    'mint',
+    'pudina',
+    'leafy greens',
+    'curry leaves',
+    'dill',
+    'shepu',
   ];
   static const fruitKeywords = [
-    'apple', 'banana', 'orange', 'pomegranate', 'grape', 'guava', 'papaya',
-    'watermelon', 'muskmelon', 'kharbuja', 'pineapple', 'mango', 'lemon',
-    'kiwi', 'sapota', 'chikoo', 'dragon fruit',
+    'apple',
+    'banana',
+    'orange',
+    'pomegranate',
+    'grape',
+    'guava',
+    'papaya',
+    'watermelon',
+    'muskmelon',
+    'kharbuja',
+    'pineapple',
+    'mango',
+    'lemon',
+    'kiwi',
+    'sapota',
+    'chikoo',
+    'dragon fruit',
   ];
   static const preferredCategoryOrder = [
     'Vegetables',
@@ -1356,7 +1930,9 @@ class _ProductsPageState extends State<ProductsPage> {
   List<String> get _availableCategories {
     final present = widget.products.map(_categoryFor).toSet();
     final ordered = preferredCategoryOrder.where(present.contains).toList();
-    final extras = present.where((value) => !preferredCategoryOrder.contains(value)).toList()
+    final extras = present
+        .where((value) => !preferredCategoryOrder.contains(value))
+        .toList()
       ..sort();
     return ['All', ...ordered, ...extras];
   }
@@ -1377,29 +1953,35 @@ class _ProductsPageState extends State<ProductsPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Filter products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              const Text('Filter products',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              const Text('Choose a category to narrow the FRESHORA catalog.', style: TextStyle(color: Colors.black54)),
+              const Text('Choose a category to narrow the FRESHORA catalog.',
+                  style: TextStyle(color: Colors.black54)),
               const SizedBox(height: 18),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: values.map((value) => ChoiceChip(
-                  label: Text(
-                    value,
-                    style: TextStyle(
-                      color: category == value ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  selected: category == value,
-                  selectedColor: _brandGreen,
-                  checkmarkColor: Colors.white,
-                  onSelected: (_) {
-                    setSheetState(() => category = value);
-                    setState(() {});
-                  },
-                )).toList(),
+                children: values
+                    .map((value) => ChoiceChip(
+                          label: Text(
+                            value,
+                            style: TextStyle(
+                              color: category == value
+                                  ? Colors.white
+                                  : Colors.black87,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          selected: category == value,
+                          selectedColor: _brandGreen,
+                          checkmarkColor: Colors.white,
+                          onSelected: (_) {
+                            setSheetState(() => category = value);
+                            setState(() {});
+                          },
+                        ))
+                    .toList(),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -1421,10 +2003,14 @@ class _ProductsPageState extends State<ProductsPage> {
     final query = searchController.text.trim().toLowerCase();
     final categories = _availableCategories;
     final filtered = widget.products.where((product) {
-      final matchesSearch = query.isEmpty || product.name.toLowerCase().contains(query) || product.unit.toLowerCase().contains(query);
+      final matchesSearch = query.isEmpty ||
+          product.name.toLowerCase().contains(query) ||
+          product.unit.toLowerCase().contains(query);
       return matchesSearch && matchesCategory(product);
     }).toList();
-    final selectedProducts = widget.products.where((product) => widget.quantityFor(product) > 0).toList();
+    final selectedProducts = widget.products
+        .where((product) => widget.quantityFor(product) > 0)
+        .toList();
 
     return CustomScrollView(
       slivers: [
@@ -1444,8 +2030,10 @@ class _ProductsPageState extends State<ProductsPage> {
                   foregroundColor: _brandGreenDark,
                   side: const BorderSide(color: _brandGreen),
                   backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 ),
               ),
             ),
@@ -1480,9 +2068,13 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
             child: Row(
               children: [
-                const Text('Categories', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Text('Categories',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 const Spacer(),
-                Text('${filtered.length} items', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                Text('${filtered.length} items',
+                    style:
+                        const TextStyle(color: Colors.black54, fontSize: 12)),
               ],
             ),
           ),
@@ -1509,7 +2101,8 @@ class _ProductsPageState extends State<ProductsPage> {
                     label: Text(
                       value,
                       style: TextStyle(
-                        color: category == value ? Colors.white : _brandGreenDark,
+                        color:
+                            category == value ? Colors.white : _brandGreenDark,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1526,11 +2119,23 @@ class _ProductsPageState extends State<ProductsPage> {
           ),
         ),
         if (widget.loading)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
+          const SliverToBoxAdapter(
+              child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator())))
         else if (widget.error != null)
-          SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
+          SliverToBoxAdapter(
+              child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: ErrorCard(
+                      message: widget.error!, onRetry: widget.onRetry)))
         else if (filtered.isEmpty)
-          const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('No products match your search. Try another category or search term.'))))
+          const SliverToBoxAdapter(
+              child: Padding(
+                  padding: EdgeInsets.all(28),
+                  child: Center(
+                      child: Text(
+                          'No products match your search. Try another category or search term.'))))
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -1556,7 +2161,9 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
             ),
           ),
-        if (!widget.loading && widget.error == null && selectedProducts.isNotEmpty)
+        if (!widget.loading &&
+            widget.error == null &&
+            selectedProducts.isNotEmpty)
           SliverToBoxAdapter(
             child: SelectedItemsSummary(
               products: selectedProducts,
@@ -1587,8 +2194,10 @@ class SelectedItemsSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalQuantity = products.fold<int>(0, (sum, product) => sum + quantityFor(product));
-    final totalAmount = products.fold<double>(0, (sum, product) => sum + product.price * quantityFor(product));
+    final totalQuantity =
+        products.fold<int>(0, (sum, product) => sum + quantityFor(product));
+    final totalAmount = products.fold<double>(
+        0, (sum, product) => sum + product.price * quantityFor(product));
     return Card(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
       elevation: 0,
@@ -1604,16 +2213,22 @@ class SelectedItemsSummary extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.shopping_basket_outlined, color: _brandGreenDark),
+                const Icon(Icons.shopping_basket_outlined,
+                    color: _brandGreenDark),
                 const SizedBox(width: 8),
                 const Expanded(
-                  child: Text('Your selection', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                  child: Text('Your selection',
+                      style:
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
                 ),
-                Text('$totalQuantity ${totalQuantity == 1 ? 'item' : 'items'}', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w700)),
+                Text('$totalQuantity ${totalQuantity == 1 ? 'item' : 'items'}',
+                    style: const TextStyle(
+                        color: Colors.black54, fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Adjust quantity here. Cart is optional.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+            const Text('Adjust quantity here. Cart is optional.',
+                style: TextStyle(color: Colors.black54, fontSize: 12)),
             const SizedBox(height: 10),
             ...products.map((product) {
               final quantity = quantityFor(product);
@@ -1621,14 +2236,27 @@ class SelectedItemsSummary extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    SizedBox(width: 48, height: 48, child: ProductImage(product: product, size: 48, borderRadius: 10)),
+                    SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: ProductImage(
+                            product: product, size: 48, borderRadius: 10)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
-                          Text('₹${product.price.toStringAsFixed(0)} / ${product.unit}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                          Text(product.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w800)),
+                          Text(
+                              '₹${product.price.toStringAsFixed(0)} / ${product.unit}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.black54, fontSize: 12)),
                         ],
                       ),
                     ),
@@ -1639,7 +2267,8 @@ class SelectedItemsSummary extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Decrease quantity',
                     ),
-                    Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w900)),
+                    Text('$quantity',
+                        style: const TextStyle(fontWeight: FontWeight.w900)),
                     IconButton(
                       onPressed: () => onIncrement(product),
                       icon: const Icon(Icons.add_circle_outline),
@@ -1647,7 +2276,13 @@ class SelectedItemsSummary extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Increase quantity',
                     ),
-                    SizedBox(width: 66, child: Text('₹${(product.price * quantity).toStringAsFixed(0)}', textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w900))),
+                    SizedBox(
+                        width: 66,
+                        child: Text(
+                            '₹${(product.price * quantity).toStringAsFixed(0)}',
+                            textAlign: TextAlign.end,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w900))),
                   ],
                 ),
               );
@@ -1655,8 +2290,14 @@ class SelectedItemsSummary extends StatelessWidget {
             const Divider(height: 18),
             Row(
               children: [
-                const Expanded(child: Text('Total amount', style: TextStyle(fontWeight: FontWeight.w900))),
-                Text('₹${totalAmount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _brandGreenDark)),
+                const Expanded(
+                    child: Text('Total amount',
+                        style: TextStyle(fontWeight: FontWeight.w900))),
+                Text('₹${totalAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: _brandGreenDark)),
               ],
             ),
           ],
@@ -1672,21 +2313,25 @@ class ErrorCard extends StatelessWidget {
   final VoidCallback onRetry;
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(children: [
-        const Icon(Icons.cloud_off, size: 40),
-        const SizedBox(height: 8),
-        Text(message, textAlign: TextAlign.center),
-        const SizedBox(height: 12),
-        OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
-      ]),
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(children: [
+            const Icon(Icons.cloud_off, size: 40),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+          ]),
+        ),
+      );
 }
 
 class ProductImage extends StatelessWidget {
-  const ProductImage({super.key, required this.product, this.size = 62, this.borderRadius = 14});
+  const ProductImage(
+      {super.key,
+      required this.product,
+      this.size = 62,
+      this.borderRadius = 14});
   final Product product;
   final double size;
   final double borderRadius;
@@ -1705,7 +2350,8 @@ class ProductImage extends StatelessWidget {
             : Image.network(
                 url,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
+                errorBuilder: (context, error, stackTrace) => Icon(product.icon,
+                    size: size, color: const Color(0xFF2E9B55)),
               ),
       );
     } else if (url != null) {
@@ -1714,8 +2360,13 @@ class ProductImage extends StatelessWidget {
         fit: BoxFit.cover,
         loadingBuilder: (context, child, progress) => progress == null
             ? child
-            : Center(child: SizedBox(width: size * 0.4, height: size * 0.4, child: const CircularProgressIndicator(strokeWidth: 2))),
-        errorBuilder: (context, error, stackTrace) => Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
+            : Center(
+                child: SizedBox(
+                    width: size * 0.4,
+                    height: size * 0.4,
+                    child: const CircularProgressIndicator(strokeWidth: 2))),
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(product.icon, size: size, color: const Color(0xFF2E9B55)),
       );
     } else {
       image = Icon(product.icon, size: size, color: const Color(0xFF2E9B55));
@@ -1732,7 +2383,16 @@ class ProductImage extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product, required this.onAdd, required this.onOpen, required this.isFavorite, required this.onToggleFavorite, this.quantity = 0, this.onIncrement, this.onDecrement});
+  const ProductCard(
+      {super.key,
+      required this.product,
+      required this.onAdd,
+      required this.onOpen,
+      required this.isFavorite,
+      required this.onToggleFavorite,
+      this.quantity = 0,
+      this.onIncrement,
+      this.onDecrement});
   final Product product;
   final ValueChanged<Product> onAdd;
   final ValueChanged<Product> onOpen;
@@ -1744,92 +2404,151 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
-      ],
-    ),
-    child: Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onOpen(product),
-        child: Stack(
-          children: [
-            Padding(
-            padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Stack(children: [
-            Positioned.fill(child: ProductImage(product: product)),
-            Positioned(
-              top: 6,
-              left: 6,
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFF168447), borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(_isFreshCategory(product.category) ? Icons.eco : Icons.inventory_2_outlined, size: 11, color: Colors.white),
-                  const SizedBox(width: 3),
-                  Flexible(
-                    child: Text(
-                      product.category == 'Other' ? 'Product' : product.category,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-          ])),
-          const SizedBox(height: 10),
-          Text(product.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          Text('₹' + product.price.toStringAsFixed(0) + '/' + product.unit, style: const TextStyle(color: Color(0xFF168447), fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          if (quantity == 0)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                onPressed: () => onAdd(product),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
-              ),
-            )
-          else
-            Container(
-              height: 42,
-              decoration: BoxDecoration(color: const Color(0xFFEAF6EA), borderRadius: BorderRadius.circular(30)),
-              child: Row(children: [
-                IconButton(onPressed: onDecrement, icon: const Icon(Icons.remove, size: 18), color: _brandGreenDark, tooltip: 'Decrease quantity'),
-                Expanded(child: Text('$quantity  •  ₹${(product.price * quantity).toStringAsFixed(0)}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, color: _brandGreenDark))),
-                IconButton(onPressed: onIncrement, icon: const Icon(Icons.add, size: 18), color: _brandGreenDark, tooltip: 'Increase quantity'),
-              ]),
-            ),
-        ]),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton.filledTonal(
-                tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
-                onPressed: () => onToggleFavorite(product),
-                icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-              ),
-            ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
           ],
         ),
-      ),
-    ),
-  );
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => onOpen(product),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                            child: Stack(children: [
+                          Positioned.fill(
+                              child: ProductImage(product: product)),
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 120),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: const Color(0xFF168447),
+                                  borderRadius: BorderRadius.circular(20)),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                        _isFreshCategory(product.category)
+                                            ? Icons.eco
+                                            : Icons.inventory_2_outlined,
+                                        size: 11,
+                                        color: Colors.white),
+                                    const SizedBox(width: 3),
+                                    Flexible(
+                                      child: Text(
+                                        product.category == 'Other'
+                                            ? 'Product'
+                                            : product.category,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800),
+                                      ),
+                                    ),
+                                  ]),
+                            ),
+                          ),
+                        ])),
+                        const SizedBox(height: 10),
+                        Text(product.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 16)),
+                        Text(
+                            '₹' +
+                                product.price.toStringAsFixed(0) +
+                                '/' +
+                                product.unit,
+                            style: const TextStyle(
+                                color: Color(0xFF168447),
+                                fontWeight: FontWeight.w700)),
+                        if (product.mrp != null && product.mrp! > product.price)
+                          Text(
+                            'MRP ₹${product.mrp!.toStringAsFixed(0)}  Save ₹${(product.mrp! - product.price).toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                color: Colors.black54, fontSize: 12),
+                          ),
+                        const SizedBox(height: 8),
+                        if (quantity == 0)
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30))),
+                              onPressed: () => onAdd(product),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                            ),
+                          )
+                        else
+                          Container(
+                            height: 42,
+                            decoration: BoxDecoration(
+                                color: const Color(0xFFEAF6EA),
+                                borderRadius: BorderRadius.circular(30)),
+                            child: Row(children: [
+                              IconButton(
+                                  onPressed: onDecrement,
+                                  icon: const Icon(Icons.remove, size: 18),
+                                  color: _brandGreenDark,
+                                  tooltip: 'Decrease quantity'),
+                              Expanded(
+                                  child: Text(
+                                      '$quantity  •  ₹${(product.price * quantity).toStringAsFixed(0)}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          color: _brandGreenDark))),
+                              IconButton(
+                                  onPressed: onIncrement,
+                                  icon: const Icon(Icons.add, size: 18),
+                                  color: _brandGreenDark,
+                                  tooltip: 'Increase quantity'),
+                            ]),
+                          ),
+                      ]),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton.filledTonal(
+                    tooltip: isFavorite
+                        ? 'Remove from favorites'
+                        : 'Add to favorites',
+                    onPressed: () => onToggleFavorite(product),
+                    icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class ProductDetailsPage extends StatefulWidget {
-  const ProductDetailsPage({super.key, required this.product, required this.onAdd});
+  const ProductDetailsPage(
+      {super.key, required this.product, required this.onAdd});
 
   final Product product;
   final ValueChanged<Product> onAdd;
@@ -1852,51 +2571,93 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Product Details')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        SizedBox(
-          height: 260,
-          width: double.infinity,
-          child: ProductImage(product: widget.product, size: 120, borderRadius: 24),
-        ),
-        const SizedBox(height: 22),
-        Text(widget.product.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Text('₹' + widget.product.price.toStringAsFixed(0) + ' / ' + widget.product.unit, style: const TextStyle(color: Color(0xFF168447), fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Chip(
-            avatar: Icon(_isFreshCategory(widget.product.category) ? Icons.eco_outlined : Icons.inventory_2_outlined, size: 17),
-            label: Text(widget.product.category == 'Other' ? 'Product' : widget.product.category),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          _isFreshCategory(widget.product.category)
-              ? 'Freshly sourced and available for today\'s delivery.'
-              : 'Available from the FRESHORA daily-needs catalog for convenient home delivery.',
-          style: const TextStyle(color: Colors.black54, fontSize: 16),
-        ),
-        const SizedBox(height: 24),
-        const Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 10),
-        Row(
+        appBar: AppBar(title: const Text('Product Details')),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
           children: [
-            IconButton.filledTonal(onPressed: quantity > 1 ? () => setState(() => quantity--) : null, icon: const Icon(Icons.remove)),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 22), child: Text(quantity.toString(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
-            IconButton.filledTonal(onPressed: () => setState(() => quantity++), icon: const Icon(Icons.add)),
-            const Spacer(),
-            Text('₹' + total.toStringAsFixed(0), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            SizedBox(
+              height: 260,
+              width: double.infinity,
+              child: ProductImage(
+                  product: widget.product, size: 120, borderRadius: 24),
+            ),
+            const SizedBox(height: 22),
+            Text(widget.product.name,
+                style:
+                    const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text(
+                '₹' +
+                    widget.product.price.toStringAsFixed(0) +
+                    ' / ' +
+                    widget.product.unit,
+                style: const TextStyle(
+                    color: Color(0xFF168447),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
+            if (widget.product.mrp != null &&
+                widget.product.mrp! > widget.product.price)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'MRP ₹${widget.product.mrp!.toStringAsFixed(0)}  |  You save ₹${(widget.product.mrp! - widget.product.price).toStringAsFixed(0)}',
+                  style: const TextStyle(
+                      color: Colors.black54, fontWeight: FontWeight.w600),
+                ),
+              ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                avatar: Icon(
+                    _isFreshCategory(widget.product.category)
+                        ? Icons.eco_outlined
+                        : Icons.inventory_2_outlined,
+                    size: 17),
+                label: Text(widget.product.category == 'Other'
+                    ? 'Product'
+                    : widget.product.category),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _isFreshCategory(widget.product.category)
+                  ? 'Freshly sourced and available for today\'s delivery.'
+                  : 'Available from the FRESHORA daily-needs catalog for convenient home delivery.',
+              style: const TextStyle(color: Colors.black54, fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            const Text('Quantity',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                IconButton.filledTonal(
+                    onPressed:
+                        quantity > 1 ? () => setState(() => quantity--) : null,
+                    icon: const Icon(Icons.remove)),
+                Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    child: Text(quantity.toString(),
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w900))),
+                IconButton.filledTonal(
+                    onPressed: () => setState(() => quantity++),
+                    icon: const Icon(Icons.add)),
+                const Spacer(),
+                Text('₹' + total.toStringAsFixed(0),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w900)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+                onPressed: _addToCart,
+                icon: const Icon(Icons.shopping_cart_outlined),
+                label: Text('Add ' + quantity.toString() + ' to Cart')),
           ],
         ),
-        const SizedBox(height: 24),
-        FilledButton.icon(onPressed: _addToCart, icon: const Icon(Icons.shopping_cart_outlined), label: Text('Add ' + quantity.toString() + ' to Cart')),
-      ],
-    ),
-  );
+      );
 }
 
 /// Local promo codes: code -> (percentage off 0-1, flat max cap in rupees, flat discount if percent is null).
@@ -1907,7 +2668,8 @@ const Map<String, _PromoOffer> _promoCodes = {
 };
 
 class _PromoOffer {
-  const _PromoOffer({this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0});
+  const _PromoOffer(
+      {this.percentOff, this.maxOff, this.flatOff, this.minOrder = 0});
   final double? percentOff;
   final double? maxOff;
   final double? flatOff;
@@ -1922,7 +2684,18 @@ class _PromoOffer {
 }
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
+  const CartPage(
+      {super.key,
+      required this.cart,
+      required this.onIncrement,
+      required this.onDecrement,
+      required this.onRemove,
+      this.syncError,
+      this.onRetrySync,
+      required this.addresses,
+      required this.onOrderPlaced,
+      required this.onContinueShopping,
+      this.api});
   final List<CartItem> cart;
   final ValueChanged<CartItem> onIncrement;
   final ValueChanged<CartItem> onDecrement;
@@ -1930,7 +2703,8 @@ class CartPage extends StatefulWidget {
   final String? syncError;
   final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
-  final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final Future<OrderRecord> Function(
+      String payment, CustomerAddress address, double total) onOrderPlaced;
   final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
@@ -1943,7 +2717,8 @@ class _CartPageState extends State<CartPage> {
   String? _appliedCode;
   String? _promoError;
 
-  double get subtotal => widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
+  double get subtotal =>
+      widget.cart.fold(0, (sum, x) => sum + x.product.price * x.quantity);
 
   double get discount {
     final code = _appliedCode;
@@ -1962,7 +2737,8 @@ class _CartPageState extends State<CartPage> {
         _promoError = 'Invalid promo code';
         _appliedCode = null;
       } else if (subtotal < offer.minOrder) {
-        _promoError = 'Add ₹${offer.minOrder.toStringAsFixed(0)} more to use this code';
+        _promoError =
+            'Add ₹${offer.minOrder.toStringAsFixed(0)} more to use this code';
         _appliedCode = null;
       } else {
         _promoError = null;
@@ -1980,10 +2756,12 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     if (widget.cart.isEmpty) {
-      return const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      return const Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.shopping_cart_outlined, size: 72, color: Colors.black26),
         SizedBox(height: 12),
-        Text('Your cart is empty', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        Text('Your cart is empty',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         Text('Add fresh products to get started.'),
       ]));
     }
@@ -1992,31 +2770,51 @@ class _CartPageState extends State<CartPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
       children: [
-        const Text('My Cart', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+        const Text('My Cart',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
         if (widget.syncError != null)
           Card(
             color: Theme.of(context).colorScheme.errorContainer,
             child: ListTile(
-              leading: Icon(Icons.cloud_off, color: Theme.of(context).colorScheme.onErrorContainer),
+              leading: Icon(Icons.cloud_off,
+                  color: Theme.of(context).colorScheme.onErrorContainer),
               title: const Text('Cart sync failed'),
               subtitle: Text(widget.syncError!),
-              trailing: TextButton(onPressed: widget.onRetrySync, child: const Text('Retry')),
+              trailing: TextButton(
+                  onPressed: widget.onRetrySync, child: const Text('Retry')),
             ),
           ),
         if (widget.syncError != null) const SizedBox(height: 10),
         ...widget.cart.map((item) => Card(
-          elevation: 0, child: ListTile(
-            leading: SizedBox(width: 44, height: 44, child: ProductImage(product: item.product, size: 26, borderRadius: 10)),
-            title: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('₹' + item.product.price.toStringAsFixed(0) + ' / ' + item.product.unit),
-            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-              IconButton(onPressed: () => widget.onDecrement(item), icon: const Icon(Icons.remove_circle_outline)),
-              Text(item.quantity.toString(), style: const TextStyle(fontWeight: FontWeight.w700)),
-              IconButton(onPressed: () => widget.onIncrement(item), icon: const Icon(Icons.add_circle_outline)),
-              IconButton(onPressed: () => widget.onRemove(item), icon: const Icon(Icons.delete_outline), tooltip: 'Remove'),
-            ]),
-          ),
-        )),
+              elevation: 0,
+              child: ListTile(
+                leading: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: ProductImage(
+                        product: item.product, size: 26, borderRadius: 10)),
+                title: Text(item.product.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text('₹' +
+                    item.product.price.toStringAsFixed(0) +
+                    ' / ' +
+                    item.product.unit),
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  IconButton(
+                      onPressed: () => widget.onDecrement(item),
+                      icon: const Icon(Icons.remove_circle_outline)),
+                  Text(item.quantity.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  IconButton(
+                      onPressed: () => widget.onIncrement(item),
+                      icon: const Icon(Icons.add_circle_outline)),
+                  IconButton(
+                      onPressed: () => widget.onRemove(item),
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Remove'),
+                ]),
+              ),
+            )),
         const SizedBox(height: 16),
         Row(children: [
           Expanded(
@@ -2026,47 +2824,75 @@ class _CartPageState extends State<CartPage> {
               decoration: InputDecoration(
                 labelText: 'Promo code',
                 errorText: _promoError,
-                suffixIcon: _appliedCode != null ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                suffixIcon: _appliedCode != null
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
               ),
               onSubmitted: (_) => _applyPromo(),
             ),
           ),
           const SizedBox(width: 8),
-          FilledButton.tonal(onPressed: _applyPromo, child: const Text('Apply')),
+          FilledButton.tonal(
+              onPressed: _applyPromo, child: const Text('Apply')),
         ]),
         const SizedBox(height: 16),
         SummaryRow(label: 'Subtotal', value: subtotal),
         SummaryRow(label: 'Delivery Fee', value: delivery),
-        if (discount > 0) SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
+        if (discount > 0)
+          SummaryRow(label: 'Discount ($_appliedCode)', value: -discount),
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, onContinueShopping: widget.onContinueShopping, api: widget.api))), child: const Text('Proceed to Checkout')),
+        FilledButton(
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => CheckoutPage(
+                        total: total,
+                        addresses: widget.addresses,
+                        onOrderPlaced: widget.onOrderPlaced,
+                        onContinueShopping: widget.onContinueShopping,
+                        api: widget.api))),
+            child: const Text('Proceed to Checkout')),
       ],
     );
   }
 }
 
 class SummaryRow extends StatelessWidget {
-  const SummaryRow({super.key, required this.label, required this.value, this.bold = false});
+  const SummaryRow(
+      {super.key, required this.label, required this.value, this.bold = false});
   final String label;
   final double value;
   final bool bold;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w400)),
-      Text('₹' + value.toStringAsFixed(0), style: TextStyle(fontWeight: bold ? FontWeight.w900 : FontWeight.w600, fontSize: bold ? 18 : 14)),
-    ]),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(label,
+              style: TextStyle(
+                  fontWeight: bold ? FontWeight.w800 : FontWeight.w400)),
+          Text('₹' + value.toStringAsFixed(0),
+              style: TextStyle(
+                  fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+                  fontSize: bold ? 18 : 14)),
+        ]),
+      );
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
+  const CheckoutPage(
+      {super.key,
+      required this.total,
+      required this.addresses,
+      required this.onOrderPlaced,
+      required this.onContinueShopping,
+      this.api});
   final double total;
   final List<CustomerAddress> addresses;
-  final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final Future<OrderRecord> Function(
+      String payment, CustomerAddress address, double total) onOrderPlaced;
   final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
   @override
@@ -2087,7 +2913,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (result == null || !mounted) return;
     setState(() => savingAddress = true);
     try {
-      final saved = widget.api == null ? result : await widget.api!.createAddress(result);
+      final saved =
+          widget.api == null ? result : await widget.api!.createAddress(result);
       if (!mounted) return;
       setState(() {
         widget.addresses.add(saved);
@@ -2097,11 +2924,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     } on CustomerApiException catch (e) {
       if (!mounted) return;
       setState(() => savingAddress = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => savingAddress = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save address. Please try again.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not save address. Please try again.')));
     }
   }
 
@@ -2111,11 +2940,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (!mounted) return;
     setState(() => savingAddress = false);
     if (location == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not detect your location. Enter your address manually instead.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Could not detect your location. Enter your address manually instead.')));
       return;
     }
-    final parts = location.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
-    await _addAddress(initialAddress: CustomerAddress(
+    final parts = location
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    await _addAddress(
+        initialAddress: CustomerAddress(
       label: 'Current location',
       fullAddress: parts.isEmpty ? location : parts.first,
       city: parts.length > 1 ? parts.last : location,
@@ -2125,92 +2961,133 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Checkout')),
-    body: ListView(padding: const EdgeInsets.all(20), children: [
-      const Text('Delivery Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 10),
-      if (widget.addresses.isEmpty)
-        const Card(child: ListTile(leading: Icon(Icons.location_off_outlined), title: Text('No saved address'), subtitle: Text('Add a delivery address to continue.')))
-      else
-        ...[
-          for (var i = 0; i < widget.addresses.length; i++)
-            Card(
-              elevation: 0,
-              color: selectedAddress == i ? const Color(0xFFE1F4E6) : Colors.white,
-              child: ListTile(
-                leading: Icon(selectedAddress == i ? Icons.radio_button_checked : Icons.radio_button_off, color: const Color(0xFF168447)),
-                title: Text(widget.addresses[i].label, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(widget.addresses[i].displayAddress),
-                onTap: () => setState(() => selectedAddress = i),
+        appBar: AppBar(title: const Text('Checkout')),
+        body: ListView(padding: const EdgeInsets.all(20), children: [
+          const Text('Delivery Address',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          if (widget.addresses.isEmpty)
+            const Card(
+                child: ListTile(
+                    leading: Icon(Icons.location_off_outlined),
+                    title: Text('No saved address'),
+                    subtitle: Text('Add a delivery address to continue.')))
+          else ...[
+            for (var i = 0; i < widget.addresses.length; i++)
+              Card(
+                elevation: 0,
+                color: selectedAddress == i
+                    ? const Color(0xFFE1F4E6)
+                    : Colors.white,
+                child: ListTile(
+                  leading: Icon(
+                      selectedAddress == i
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_off,
+                      color: const Color(0xFF168447)),
+                  title: Text(widget.addresses[i].label,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(widget.addresses[i].displayAddress),
+                  onTap: () => setState(() => selectedAddress = i),
+                ),
               ),
-            ),
-        ],
-      const SizedBox(height: 8),
-      const Text('Choose how to add your delivery address', style: TextStyle(color: Colors.black54)),
-      const SizedBox(height: 8),
-      Row(children: [
-        Expanded(child: OutlinedButton.icon(
-          onPressed: savingAddress ? null : _useCurrentLocation,
-          icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location_rounded),
-          label: const Text('Use current location'),
-        )),
-        const SizedBox(width: 10),
-        Expanded(child: FilledButton.icon(
-          onPressed: savingAddress ? null : _addAddress,
-          icon: const Icon(Icons.edit_location_alt_outlined),
-          label: const Text('Enter manually'),
-        )),
-      ]),
-      const SizedBox(height: 22),
-      const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-      Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          ChoiceChip(
-            label: const Text('UPI'),
-            selected: payment == 'UPI',
-            onSelected: (_) => setState(() => payment = 'UPI'),
+          ],
+          const SizedBox(height: 8),
+          const Text('Choose how to add your delivery address',
+              style: TextStyle(color: Colors.black54)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+                child: OutlinedButton.icon(
+              onPressed: savingAddress ? null : _useCurrentLocation,
+              icon: savingAddress
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location_rounded),
+              label: const Text('Use current location'),
+            )),
+            const SizedBox(width: 10),
+            Expanded(
+                child: FilledButton.icon(
+              onPressed: savingAddress ? null : _addAddress,
+              icon: const Icon(Icons.edit_location_alt_outlined),
+              label: const Text('Enter manually'),
+            )),
+          ]),
+          const SizedBox(height: 22),
+          const Text('Payment Method',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              ChoiceChip(
+                label: const Text('UPI'),
+                selected: payment == 'UPI',
+                onSelected: (_) => setState(() => payment = 'UPI'),
+              ),
+              ChoiceChip(
+                label: const Text('Cash on Delivery'),
+                selected: payment == 'COD',
+                onSelected: (_) => setState(() => payment = 'COD'),
+              ),
+            ],
           ),
-          ChoiceChip(
-            label: const Text('Cash on Delivery'),
-            selected: payment == 'COD',
-            onSelected: (_) => setState(() => payment = 'COD'),
+          const SizedBox(height: 6),
+          Text(
+            payment == 'UPI'
+                ? 'Google Pay / PhonePe / Paytm'
+                : 'Pay in cash when your order is delivered.',
+            style: const TextStyle(color: Colors.black54),
           ),
-        ],
-      ),
-      const SizedBox(height: 6),
-      Text(
-        payment == 'UPI' ? 'Google Pay / PhonePe / Paytm' : 'Pay in cash when your order is delivered.',
-        style: const TextStyle(color: Colors.black54),
-      ),
-      SummaryRow(label: 'Total', value: widget.total, bold: true),
-      const SizedBox(height: 18),
-      FilledButton(
-        onPressed: widget.addresses.isEmpty || placingOrder || savingAddress ? null : () async {
-          setState(() => placingOrder = true);
-          try {
-            final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
-            if (!context.mounted) return;
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, onContinueShopping: widget.onContinueShopping, api: widget.api)));
-          } on CustomerApiException catch (e) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-          } catch (_) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not confirm the order. Check My Orders before trying again.')));
-          } finally {
-            if (mounted) setState(() => placingOrder = false);
-          }
-        },
-        child: Text(placingOrder ? 'Placing order…' : 'Place Order'),
-      ),
-    ]),
-  );
+          SummaryRow(label: 'Total', value: widget.total, bold: true),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: widget.addresses.isEmpty || placingOrder || savingAddress
+                ? null
+                : () async {
+                    setState(() => placingOrder = true);
+                    try {
+                      final order = await widget.onOrderPlaced(
+                          payment,
+                          widget.addresses[selectedAddress.clamp(
+                              0, widget.addresses.length - 1)],
+                          widget.total);
+                      if (!context.mounted) return;
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => OrderSuccessPage(
+                                  order: order,
+                                  onContinueShopping: widget.onContinueShopping,
+                                  api: widget.api)));
+                    } on CustomerApiException catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(e.message)));
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                              'Could not confirm the order. Check My Orders before trying again.')));
+                    } finally {
+                      if (mounted) setState(() => placingOrder = false);
+                    }
+                  },
+            child: Text(placingOrder ? 'Placing order…' : 'Place Order'),
+          ),
+        ]),
+      );
 }
 
 class OrderSuccessPage extends StatefulWidget {
-  const OrderSuccessPage({super.key, required this.order, required this.onContinueShopping, this.api});
+  const OrderSuccessPage(
+      {super.key,
+      required this.order,
+      required this.onContinueShopping,
+      this.api});
   final OrderRecord order;
   final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
@@ -2222,9 +3099,13 @@ class OrderSuccessPage extends StatefulWidget {
 class _OrderSuccessPageState extends State<OrderSuccessPage> {
   late OrderRecord order;
 
-  bool get paymentPending => order.payment == 'UPI' && order.status == 'PAYMENT_PENDING';
-  String get heading => paymentPending ? 'Order Created — Payment Pending'
-      : order.status == 'CANCELLED' ? 'Order Cancelled' : 'Order Placed Successfully!';
+  bool get paymentPending =>
+      order.payment == 'UPI' && order.status == 'PAYMENT_PENDING';
+  String get heading => paymentPending
+      ? 'Order Created — Payment Pending'
+      : order.status == 'CANCELLED'
+          ? 'Order Cancelled'
+          : 'Order Placed Successfully!';
 
   @override
   void initState() {
@@ -2234,28 +3115,52 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(paymentPending ? Icons.payment : order.status == 'CANCELLED' ? Icons.cancel_outlined : Icons.check_circle, size: 56, color: const Color(0xFF168447)),
-        const SizedBox(height: 22),
-        Text(heading, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 10),
-        Text(paymentPending ? 'Complete your UPI payment to confirm the order.' : order.status == 'CANCELLED' ? 'This order has been cancelled.' : 'Thank you for shopping with FRESHORA.', textAlign: TextAlign.center),
-        const SizedBox(height: 26),
-        Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
-        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: () {
-            widget.onContinueShopping();
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          },
-          child: const Text('Continue Shopping'),
-        ),
-      ]),
-    )),
-  );
+        body: Center(
+            child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(
+                paymentPending
+                    ? Icons.payment
+                    : order.status == 'CANCELLED'
+                        ? Icons.cancel_outlined
+                        : Icons.check_circle,
+                size: 56,
+                color: const Color(0xFF168447)),
+            const SizedBox(height: 22),
+            Text(heading,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 10),
+            Text(
+                paymentPending
+                    ? 'Complete your UPI payment to confirm the order.'
+                    : order.status == 'CANCELLED'
+                        ? 'This order has been cancelled.'
+                        : 'Thank you for shopping with FRESHORA.',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 26),
+            Card(
+                child: ListTile(
+                    title: const Text('Order ID'),
+                    subtitle: Text('#' + order.id),
+                    trailing: Text('₹' + order.total.toStringAsFixed(0)))),
+            OrderPaymentActions(
+                order: order,
+                api: widget.api,
+                onUpdated: (updated) => setState(() => order = updated)),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () {
+                widget.onContinueShopping();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: const Text('Continue Shopping'),
+            ),
+          ]),
+        )),
+      );
 }
 
 class OrdersPage extends StatefulWidget {
@@ -2285,7 +3190,8 @@ class _OrdersPageState extends State<OrdersPage> {
       }
     } on CustomerApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => refreshing = false);
@@ -2294,43 +3200,58 @@ class _OrdersPageState extends State<OrdersPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('My Orders'),
-      actions: [
-        if (widget.api != null)
-          IconButton(
-            tooltip: 'Refresh orders',
-            onPressed: refreshing ? null : _refreshOrders,
-            icon: refreshing
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.refresh),
+        appBar: AppBar(
+          title: const Text('My Orders'),
+          actions: [
+            if (widget.api != null)
+              IconButton(
+                tooltip: 'Refresh orders',
+                onPressed: refreshing ? null : _refreshOrders,
+                icon: refreshing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh),
+              ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refreshOrders,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (widget.orders.isEmpty)
+                const Card(
+                    child: ListTile(
+                  leading: Icon(Icons.receipt_long_outlined),
+                  title: Text('No orders yet'),
+                  subtitle: Text('Your completed orders will appear here.'),
+                ))
+              else
+                ...widget.orders.map((order) => Card(
+                        child: ListTile(
+                      leading: const CircleAvatar(
+                          child: Icon(Icons.shopping_basket)),
+                      title: Text('#' + order.id,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      subtitle: Text(order.payment +
+                          ' • ' +
+                          order.status +
+                          ' • ₹' +
+                          order.total.toStringAsFixed(0)),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => OrderDetailsPage(
+                                  order: order, api: widget.api))),
+                    ))),
+            ],
           ),
-      ],
-    ),
-    body: RefreshIndicator(
-      onRefresh: _refreshOrders,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        children: [
-          if (widget.orders.isEmpty)
-            const Card(child: ListTile(
-              leading: Icon(Icons.receipt_long_outlined),
-              title: Text('No orders yet'),
-              subtitle: Text('Your completed orders will appear here.'),
-            ))
-          else
-            ...widget.orders.map((order) => Card(child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.shopping_basket)),
-              title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text(order.payment + ' • ' + order.status + ' • ₹' + order.total.toStringAsFixed(0)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsPage(order: order, api: widget.api))),
-            ))),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }
 
 class OrderDetailsPage extends StatefulWidget {
@@ -2348,52 +3269,76 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Order #' + order.id)),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.receipt_long_outlined),
-            title: Text('#' + order.id, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(order.payment + ' • ' + _formatDate(order.createdAt)),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text('Items', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 8),
-        if (order.items.isEmpty)
-          const Card(child: ListTile(title: Text('Item details are unavailable for this order.')))
-        else
-          ...order.items.map((item) => Card(
-            child: ListTile(
-              title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(item.quantity.toString() + ' × ₹' + item.price.toStringAsFixed(0) + ' / ' + item.unit),
-              trailing: Text('₹' + item.total.toStringAsFixed(0), style: const TextStyle(fontWeight: FontWeight.w800)),
+        appBar: AppBar(title: Text('Order #' + order.id)),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: Text('#' + order.id,
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle:
+                    Text(order.payment + ' • ' + _formatDate(order.createdAt)),
+              ),
             ),
-          )),
-        const SizedBox(height: 10),
-        SummaryRow(label: 'Order Total', value: order.total, bold: true),
-        const SizedBox(height: 14),
-        Card(child: ListTile(
-          leading: const Icon(Icons.location_on_outlined),
-          title: const Text('Delivery Address'),
-          subtitle: Text(order.address),
-        )),
-        const SizedBox(height: 14),
-        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
-        FilledButton.icon(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: widget.api))),
-          icon: const Icon(Icons.local_shipping_outlined),
-          label: const Text('Track Order'),
+            const SizedBox(height: 16),
+            const Text('Items',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            if (order.items.isEmpty)
+              const Card(
+                  child: ListTile(
+                      title:
+                          Text('Item details are unavailable for this order.')))
+            else
+              ...order.items.map((item) => Card(
+                    child: ListTile(
+                      title: Text(item.name,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(item.quantity.toString() +
+                          ' × ₹' +
+                          item.price.toStringAsFixed(0) +
+                          ' / ' +
+                          item.unit),
+                      trailing: Text('₹' + item.total.toStringAsFixed(0),
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  )),
+            const SizedBox(height: 10),
+            SummaryRow(label: 'Order Total', value: order.total, bold: true),
+            const SizedBox(height: 14),
+            Card(
+                child: ListTile(
+              leading: const Icon(Icons.location_on_outlined),
+              title: const Text('Delivery Address'),
+              subtitle: Text(order.address),
+            )),
+            const SizedBox(height: 14),
+            OrderPaymentActions(
+                order: order,
+                api: widget.api,
+                onUpdated: (updated) => setState(() => order = updated)),
+            FilledButton.icon(
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          TrackingPage(order: order, api: widget.api))),
+              icon: const Icon(Icons.local_shipping_outlined),
+              label: const Text('Track Order'),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class OrderPaymentActions extends StatefulWidget {
-  const OrderPaymentActions({super.key, required this.order, required this.api, required this.onUpdated});
+  const OrderPaymentActions(
+      {super.key,
+      required this.order,
+      required this.api,
+      required this.onUpdated});
   final OrderRecord order;
   final HttpCustomerRepository? api;
   final ValueChanged<OrderRecord> onUpdated;
@@ -2410,21 +3355,31 @@ class _OrderPaymentActionsState extends State<OrderPaymentActions> {
     final api = widget.api;
     final id = int.tryParse(widget.order.id);
     if (api == null || id == null || busy) return;
-    setState(() { busy = true; error = null; });
+    setState(() {
+      busy = true;
+      error = null;
+    });
     try {
       final latest = await api.getOrder(id);
       if (!mounted) return;
       widget.onUpdated(latest);
-      if (pay && latest.payment == 'UPI' && latest.status == 'PAYMENT_PENDING') {
+      if (pay &&
+          latest.payment == 'UPI' &&
+          latest.status == 'PAYMENT_PENDING') {
         final url = await api.createPaymentLink(id);
         if (!mounted) return;
-        final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-        if (!launched && mounted) setState(() => error = 'Could not open the payment page. Please try again.');
+        final launched = await launchUrl(Uri.parse(url),
+            mode: LaunchMode.externalApplication);
+        if (!launched && mounted)
+          setState(() =>
+              error = 'Could not open the payment page. Please try again.');
       }
     } on CustomerApiException catch (e) {
       if (mounted) setState(() => error = e.message);
     } catch (_) {
-      if (mounted) setState(() => error = 'Payment could not be opened. Your order is saved; please retry.');
+      if (mounted)
+        setState(() => error =
+            'Payment could not be opened. Your order is saved; please retry.');
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -2432,24 +3387,39 @@ class _OrderPaymentActionsState extends State<OrderPaymentActions> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.api == null || widget.order.payment != 'UPI' || widget.order.status != 'PAYMENT_PENDING') {
+    if (widget.api == null ||
+        widget.order.payment != 'UPI' ||
+        widget.order.status != 'PAYMENT_PENDING') {
       return const SizedBox.shrink();
     }
     return Column(children: [
       const SizedBox(height: 12),
-      if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
-      FilledButton.icon(onPressed: busy ? null : () => _update(pay: true), icon: const Icon(Icons.open_in_new), label: Text(busy ? 'Please wait…' : 'Pay with UPI')),
-      OutlinedButton.icon(onPressed: busy ? null : _update, icon: const Icon(Icons.refresh), label: const Text('Refresh payment status')),
+      if (error != null)
+        Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(error!, style: const TextStyle(color: Colors.red))),
+      FilledButton.icon(
+          onPressed: busy ? null : () => _update(pay: true),
+          icon: const Icon(Icons.open_in_new),
+          label: Text(busy ? 'Please wait…' : 'Pay with UPI')),
+      OutlinedButton.icon(
+          onPressed: busy ? null : _update,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Refresh payment status')),
     ]);
   }
 }
 
 String _formatDate(DateTime value) {
   final local = value.toLocal();
-  return local.day.toString().padLeft(2, '0') + '/' +
-      local.month.toString().padLeft(2, '0') + '/' +
-      local.year.toString() + ' ' +
-      local.hour.toString().padLeft(2, '0') + ':' +
+  return local.day.toString().padLeft(2, '0') +
+      '/' +
+      local.month.toString().padLeft(2, '0') +
+      '/' +
+      local.year.toString() +
+      ' ' +
+      local.hour.toString().padLeft(2, '0') +
+      ':' +
       local.minute.toString().padLeft(2, '0');
 }
 
@@ -2478,7 +3448,8 @@ class _TrackingPageState extends State<TrackingPage> {
     super.initState();
     order = widget.order;
     _refresh();
-    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) => _refreshTrackingAndMessages());
+    _pollTimer = Timer.periodic(
+        const Duration(seconds: 8), (_) => _refreshTrackingAndMessages());
   }
 
   @override
@@ -2494,7 +3465,10 @@ class _TrackingPageState extends State<TrackingPage> {
     if (api == null || order.id.isEmpty) return;
     final id = int.tryParse(order.id);
     if (id == null) return;
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final updated = await api.getOrder(id);
       if (mounted) setState(() => order = updated);
@@ -2513,7 +3487,11 @@ class _TrackingPageState extends State<TrackingPage> {
     try {
       final t = await api.getTracking(id);
       final m = await api.getMessages(id);
-      if (mounted) setState(() { tracking = t; messages = m; });
+      if (mounted)
+        setState(() {
+          tracking = t;
+          messages = m;
+        });
       _scrollChatToBottom();
     } catch (_) {
       // Silently ignore polling failures.
@@ -2542,7 +3520,9 @@ class _TrackingPageState extends State<TrackingPage> {
       await api.sendMessage(id, text);
       await _refreshTrackingAndMessages();
     } on CustomerApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _sendingMessage = false);
     }
@@ -2551,10 +3531,12 @@ class _TrackingPageState extends State<TrackingPage> {
   Future<void> _openMap() async {
     final t = tracking;
     if (t == null || !t.hasLiveLocation) return;
-    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}');
+    final uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${t.lat},${t.lng}');
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open maps.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Could not open maps.')));
     }
   }
 
@@ -2564,140 +3546,218 @@ class _TrackingPageState extends State<TrackingPage> {
     final uri = Uri.parse('tel:$phone');
     final launched = await launchUrl(uri);
     if (!launched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open dialer.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open dialer.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const steps = ['PENDING', 'ADDRESS_CONFIRMED', 'PAYMENT_PENDING', 'CONFIRMED', 'PACKING', 'OUT_FOR_DELIVERY', 'DELIVERED'];
+    const steps = [
+      'PENDING',
+      'ADDRESS_CONFIRMED',
+      'PAYMENT_PENDING',
+      'CONFIRMED',
+      'PACKING',
+      'OUT_FOR_DELIVERY',
+      'DELIVERED'
+    ];
     final current = steps.indexOf(order.status);
     final effectiveIndex = current < 0 ? 0 : current;
     final t = tracking;
     return Scaffold(
-      appBar: AppBar(title: Text('Order #' + order.id), actions: [IconButton(onPressed: loading ? null : _refresh, icon: const Icon(Icons.refresh))]),
+      appBar: AppBar(title: Text('Order #' + order.id), actions: [
+        IconButton(
+            onPressed: loading ? null : _refresh,
+            icon: const Icon(Icons.refresh))
+      ]),
       body: ListView(padding: const EdgeInsets.all(24), children: [
-        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(error!, style: const TextStyle(color: Colors.red))),
-        for (var i = 0; i < steps.length; i++) ListTile(
-          leading: Icon(i <= effectiveIndex ? Icons.check_circle : Icons.radio_button_unchecked, color: i <= effectiveIndex ? const Color(0xFF168447) : Colors.black26),
-          title: Text(steps[i], style: TextStyle(fontWeight: i == effectiveIndex ? FontWeight.w800 : FontWeight.w500)),
-          subtitle: i == effectiveIndex ? const Text('Current status') : null,
-        ),
-        Card(child: ListTile(leading: const Icon(Icons.local_shipping_outlined), title: const Text('Delivery Address'), subtitle: Text(order.address))),
+        if (error != null)
+          Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(error!, style: const TextStyle(color: Colors.red))),
+        for (var i = 0; i < steps.length; i++)
+          ListTile(
+            leading: Icon(
+                i <= effectiveIndex
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                color: i <= effectiveIndex
+                    ? const Color(0xFF168447)
+                    : Colors.black26),
+            title: Text(steps[i],
+                style: TextStyle(
+                    fontWeight: i == effectiveIndex
+                        ? FontWeight.w800
+                        : FontWeight.w500)),
+            subtitle: i == effectiveIndex ? const Text('Current status') : null,
+          ),
+        Card(
+            child: ListTile(
+                leading: const Icon(Icons.local_shipping_outlined),
+                title: const Text('Delivery Address'),
+                subtitle: Text(order.address))),
         if (t != null && t.deliveryPersonName != null) ...[
           const SizedBox(height: 8),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Your Delivery Partner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 10),
-                Row(children: [
-                  const CircleAvatar(child: Icon(Icons.delivery_dining)),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(t.deliveryPersonName!, style: const TextStyle(fontWeight: FontWeight.w700))),
-                  IconButton(onPressed: _callDeliveryPerson, icon: const Icon(Icons.call, color: Color(0xFF168447))),
-                ]),
-                if (t.hasLiveLocation) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 240,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: FlutterMap(
-                        key: ValueKey('${t.lat}_${t.lng}'),
-                        options: MapOptions(
-                          initialCenter: LatLng(t.lat!, t.lng!),
-                          initialZoom: 15,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.freshora.app',
-                          ),
-                          MarkerLayer(markers: [
-                            Marker(
-                              point: LatLng(t.lat!, t.lng!),
-                              width: 52,
-                              height: 52,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF168447),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 3),
-                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
-                                ),
-                                child: const Icon(Icons.delivery_dining, color: Colors.white),
-                              ),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Your Delivery Partner',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      const CircleAvatar(child: Icon(Icons.delivery_dining)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text(t.deliveryPersonName!,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700))),
+                      IconButton(
+                          onPressed: _callDeliveryPerson,
+                          icon:
+                              const Icon(Icons.call, color: Color(0xFF168447))),
+                    ]),
+                    if (t.hasLiveLocation) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 240,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: FlutterMap(
+                            key: ValueKey('${t.lat}_${t.lng}'),
+                            options: MapOptions(
+                              initialCenter: LatLng(t.lat!, t.lng!),
+                              initialZoom: 15,
                             ),
-                          ]),
-                          RichAttributionWidget(attributions: [
-                            TextSourceAttribution('OpenStreetMap contributors'),
-                          ]),
-                        ],
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.freshora.app',
+                              ),
+                              MarkerLayer(markers: [
+                                Marker(
+                                  point: LatLng(t.lat!, t.lng!),
+                                  width: 52,
+                                  height: 52,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF168447),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 3),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 6)
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.delivery_dining,
+                                        color: Colors.white),
+                                  ),
+                                ),
+                              ]),
+                              RichAttributionWidget(attributions: [
+                                TextSourceAttribution(
+                                    'OpenStreetMap contributors'),
+                              ]),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    t.updatedAt != null ? 'Location updated ${_formatDate(t.updatedAt!)}' : 'Live location available',
-                    style: const TextStyle(color: Colors.black54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(onPressed: _openMap, icon: const Icon(Icons.map_outlined), label: const Text('View Live Location on Map')),
-                ] else
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text('Waiting for the delivery partner to share their location.', style: TextStyle(color: Colors.black54, fontSize: 12)),
-                  ),
-              ]),
+                      const SizedBox(height: 8),
+                      Text(
+                        t.updatedAt != null
+                            ? 'Location updated ${_formatDate(t.updatedAt!)}'
+                            : 'Live location available',
+                        style: const TextStyle(
+                            color: Colors.black54, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                          onPressed: _openMap,
+                          icon: const Icon(Icons.map_outlined),
+                          label: const Text('View Live Location on Map')),
+                    ] else
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                            'Waiting for the delivery partner to share their location.',
+                            style:
+                                TextStyle(color: Colors.black54, fontSize: 12)),
+                      ),
+                  ]),
             ),
           ),
           const SizedBox(height: 8),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Chat with Delivery Partner', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 220,
-                  child: messages.isEmpty
-                      ? const Center(child: Text('No messages yet.', style: TextStyle(color: Colors.black45)))
-                      : ListView.builder(
-                          controller: _chatScrollController,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final m = messages[index];
-                            return Align(
-                              alignment: m.fromCustomer ? Alignment.centerRight : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                constraints: const BoxConstraints(maxWidth: 260),
-                                decoration: BoxDecoration(
-                                  color: m.fromCustomer ? const Color(0xFF168447) : const Color(0xFFEAF6EA),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(m.message, style: TextStyle(color: m.fromCustomer ? Colors.white : Colors.black87)),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _chatController,
-                      decoration: const InputDecoration(hintText: 'Message your delivery partner…'),
-                      onSubmitted: (_) => _sendMessage(),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Chat with Delivery Partner',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 220,
+                      child: messages.isEmpty
+                          ? const Center(
+                              child: Text('No messages yet.',
+                                  style: TextStyle(color: Colors.black45)))
+                          : ListView.builder(
+                              controller: _chatScrollController,
+                              itemCount: messages.length,
+                              itemBuilder: (context, index) {
+                                final m = messages[index];
+                                return Align(
+                                  alignment: m.fromCustomer
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 260),
+                                    decoration: BoxDecoration(
+                                      color: m.fromCustomer
+                                          ? const Color(0xFF168447)
+                                          : const Color(0xFFEAF6EA),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(m.message,
+                                        style: TextStyle(
+                                            color: m.fromCustomer
+                                                ? Colors.white
+                                                : Colors.black87)),
+                                  ),
+                                );
+                              },
+                            ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(onPressed: _sendingMessage ? null : _sendMessage, icon: const Icon(Icons.send)),
-                ]),
-              ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _chatController,
+                          decoration: const InputDecoration(
+                              hintText: 'Message your delivery partner…'),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                          onPressed: _sendingMessage ? null : _sendMessage,
+                          icon: const Icon(Icons.send)),
+                    ]),
+                  ]),
             ),
           ),
         ],
@@ -2707,7 +3767,14 @@ class _TrackingPageState extends State<TrackingPage> {
 }
 
 class FavoritesPage extends StatelessWidget {
-  const FavoritesPage({super.key, required this.products, required this.onAdd, required this.onToggleFavorite, this.quantityFor, this.onIncrementProduct, this.onDecrementProduct});
+  const FavoritesPage(
+      {super.key,
+      required this.products,
+      required this.onAdd,
+      required this.onToggleFavorite,
+      this.quantityFor,
+      this.onIncrementProduct,
+      this.onDecrementProduct});
 
   final List<Product> products;
   final ValueChanged<Product> onAdd;
@@ -2718,33 +3785,51 @@ class FavoritesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('My Favorites')),
-    body: products.isEmpty
-        ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.favorite_border, size: 64, color: Colors.black26),
-            SizedBox(height: 12),
-            Text('No favorites yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            Text('Tap the heart on a product to save it here.'),
-          ]))
-        : GridView.builder(
-            padding: const EdgeInsets.all(20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .78),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return ProductCard(
-                product: product,
-                onAdd: onAdd,
-                onOpen: (value) => Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsPage(product: value, onAdd: onAdd))),
-                isFavorite: true,
-                onToggleFavorite: onToggleFavorite,
-                quantity: quantityFor?.call(product) ?? 0,
-                onIncrement: onIncrementProduct == null ? null : () => onIncrementProduct!(product),
-                onDecrement: onDecrementProduct == null ? null : () => onDecrementProduct!(product),
-              );
-            },
-          ),
-  );
+        appBar: AppBar(title: const Text('My Favorites')),
+        body: products.isEmpty
+            ? const Center(
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                    Icon(Icons.favorite_border,
+                        size: 64, color: Colors.black26),
+                    SizedBox(height: 12),
+                    Text('No favorites yet',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800)),
+                    Text('Tap the heart on a product to save it here.'),
+                  ]))
+            : GridView.builder(
+                padding: const EdgeInsets.all(20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: .78),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return ProductCard(
+                    product: product,
+                    onAdd: onAdd,
+                    onOpen: (value) => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => ProductDetailsPage(
+                                product: value, onAdd: onAdd))),
+                    isFavorite: true,
+                    onToggleFavorite: onToggleFavorite,
+                    quantity: quantityFor?.call(product) ?? 0,
+                    onIncrement: onIncrementProduct == null
+                        ? null
+                        : () => onIncrementProduct!(product),
+                    onDecrement: onDecrementProduct == null
+                        ? null
+                        : () => onDecrementProduct!(product),
+                  );
+                },
+              ),
+      );
 }
 
 class ProfileInformationPage extends StatelessWidget {
@@ -2753,43 +3838,72 @@ class ProfileInformationPage extends StatelessWidget {
 
   Future<void> _contactSupport(BuildContext context) async {
     try {
-      final opened = await launchUrl(Uri.parse('https://wa.me/918788543135'), mode: LaunchMode.externalApplication);
+      final opened = await launchUrl(Uri.parse('https://wa.me/918788543135'),
+          mode: LaunchMode.externalApplication);
       if (opened || !context.mounted) return;
     } catch (_) {
       if (!context.mounted) return;
     }
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact support on WhatsApp at +91 87885 43135.')));
+    if (context.mounted)
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Contact support on WhatsApp at +91 87885 43135.')));
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: ListView(padding: const EdgeInsets.all(20), children: [
-      if (title == 'Payment Methods') ...[
-        const ListTile(leading: Icon(Icons.payment), title: Text('UPI'), subtitle: Text('Choose UPI at checkout and pay through the secure payment page.')),
-        const ListTile(leading: Icon(Icons.payments_outlined), title: Text('Cash on Delivery'), subtitle: Text('Pay in cash when your order arrives.')),
-        const Padding(padding: EdgeInsets.all(16), child: Text('To finish an unpaid UPI order, open My Orders, select the order, and tap Pay with UPI.')),
-      ] else if (title == 'Help & Support') ...[
-        const Text('Need help with an order?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        const Text('Contact our team on WhatsApp at +91 87885 43135. Include your Order ID from My Orders so we can help.'),
-        const SizedBox(height: 16),
-        FilledButton.icon(onPressed: () => _contactSupport(context), icon: const Icon(Icons.chat_outlined), label: const Text('Contact on WhatsApp')),
-      ] else ...[
-        const Center(child: FreshoraLogo(size: 80)),
-        const SizedBox(height: 16),
-        const Text('FRESHORA', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 12),
-        const Text('Fresh fruits and vegetables for Talegaon. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
-      ],
-    ]),
-  );
+        appBar: AppBar(title: Text(title)),
+        body: ListView(padding: const EdgeInsets.all(20), children: [
+          if (title == 'Payment Methods') ...[
+            const ListTile(
+                leading: Icon(Icons.payment),
+                title: Text('UPI'),
+                subtitle: Text(
+                    'Choose UPI at checkout and pay through the secure payment page.')),
+            const ListTile(
+                leading: Icon(Icons.payments_outlined),
+                title: Text('Cash on Delivery'),
+                subtitle: Text('Pay in cash when your order arrives.')),
+            const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                    'To finish an unpaid UPI order, open My Orders, select the order, and tap Pay with UPI.')),
+          ] else if (title == 'Help & Support') ...[
+            const Text('Need help with an order?',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            const Text(
+                'Contact our team on WhatsApp at +91 87885 43135. Include your Order ID from My Orders so we can help.'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+                onPressed: () => _contactSupport(context),
+                icon: const Icon(Icons.chat_outlined),
+                label: const Text('Contact on WhatsApp')),
+          ] else ...[
+            const Center(child: FreshoraLogo(size: 80)),
+            const SizedBox(height: 16),
+            const Text('FRESHORA',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            const Text(
+                'Fresh fruits and vegetables for Talegaon. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
+          ],
+        ]),
+      );
 }
 
 enum _ProfilePhotoAction { camera, gallery, remove }
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.orders = const [], this.onSignOut});
+  const ProfilePage(
+      {super.key,
+      required this.session,
+      required this.addresses,
+      required this.onManageAddresses,
+      required this.onManageFavorites,
+      required this.onViewOrders,
+      this.orders = const [],
+      this.onSignOut});
   final List<OrderRecord> orders;
   final CustomerSession session;
   final List<CustomerAddress> addresses;
@@ -2805,7 +3919,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String? _profileImageBase64;
 
-  String get _profilePhotoKey => 'freshora_profile_photo_${widget.session.phone}';
+  String get _profilePhotoKey =>
+      'freshora_profile_photo_${widget.session.phone}';
 
   @override
   void initState() {
@@ -2839,7 +3954,10 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+            const ListTile(
+                title: Text('Profile photo',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Choose from gallery'),
@@ -2853,7 +3971,8 @@ class _ProfilePageState extends State<ProfilePage> {
             if (_profileImageBase64 != null)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                title: const Text('Remove photo',
+                    style: TextStyle(color: Colors.red)),
                 onTap: () => Navigator.pop(context, _ProfilePhotoAction.remove),
               ),
             const SizedBox(height: 8),
@@ -2866,12 +3985,15 @@ class _ProfilePageState extends State<ProfilePage> {
       await _removeProfilePhoto();
       return;
     }
-    await _pickProfilePhoto(action == _ProfilePhotoAction.camera ? ImageSource.camera : ImageSource.gallery);
+    await _pickProfilePhoto(action == _ProfilePhotoAction.camera
+        ? ImageSource.camera
+        : ImageSource.gallery);
   }
 
   Future<void> _pickProfilePhoto(ImageSource source) async {
     try {
-      final picked = await ImagePicker().pickImage(source: source, maxWidth: 720, imageQuality: 80);
+      final picked = await ImagePicker()
+          .pickImage(source: source, maxWidth: 720, imageQuality: 80);
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       if (bytes.isEmpty) return;
@@ -2881,7 +4003,8 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) setState(() => _profileImageBase64 = encoded);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save that profile photo.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not save that profile photo.')));
       }
     }
   }
@@ -2898,170 +4021,235 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
     if (feature == 'Notifications') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders)));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => NotificationsPage(orders: widget.orders)));
       return;
     }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileInformationPage(title: feature)));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => ProfileInformationPage(title: feature)));
   }
 
   String get _referralCode {
     final digits = widget.session.phone.replaceAll(RegExp(r'\D'), '');
-    final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits.padLeft(4, '0');
+    final suffix = digits.length >= 4
+        ? digits.substring(digits.length - 4)
+        : digits.padLeft(4, '0');
     return 'FRESHORA$suffix';
   }
 
   Future<void> _copyReferralCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: _referralCode));
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 
   Future<void> _shareReferralCode(BuildContext context) async {
     final message = 'Get fresh fruits & veggies delivered with FRESHORA! '
         'Use my code $_referralCode to get a discount on your first order. '
         'Download the app and start shopping fresh today.';
-    final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
+    final uri =
+        Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}');
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp on this device.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Could not open WhatsApp on this device.')));
     }
   }
 
   @override
   Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      Card(
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF0B5B2C), Color(0xFF168B45)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-          ),
-          child: Row(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+        padding: const EdgeInsets.all(20),
+        children: [
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                    colors: [Color(0xFF0B5B2C), Color(0xFF168B45)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
+              ),
+              child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 42,
-                    backgroundColor: Colors.white.withValues(alpha: .2),
-                    backgroundImage: _profileImage,
-                    child: _profileImage == null ? const Icon(Icons.person, size: 42, color: Colors.white) : null,
-                  ),
-                  Positioned(
-                    right: -3,
-                    bottom: -3,
-                    child: Material(
-                      color: Colors.white,
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: _showPhotoOptions,
-                        customBorder: const CircleBorder(),
-                        child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.camera_alt_outlined, size: 18, color: Color(0xFF0B5B2C))),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 42,
+                        backgroundColor: Colors.white.withValues(alpha: .2),
+                        backgroundImage: _profileImage,
+                        child: _profileImage == null
+                            ? const Icon(Icons.person,
+                                size: 42, color: Colors.white)
+                            : null,
                       ),
+                      Positioned(
+                        right: -3,
+                        bottom: -3,
+                        child: Material(
+                          color: Colors.white,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            onTap: _showPhotoOptions,
+                            customBorder: const CircleBorder(),
+                            child: const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Icon(Icons.camera_alt_outlined,
+                                    size: 18, color: Color(0xFF0B5B2C))),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          const FreshoraLogo(size: 28),
+                          const SizedBox(width: 8),
+                          Text('FRESHORA',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2))
+                        ]),
+                        const SizedBox(height: 12),
+                        Text(widget.session.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 3),
+                        Text(widget.session.phone,
+                            style: const TextStyle(color: Colors.white70)),
+                        const SizedBox(height: 4),
+                        const Text('Customer profile',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.account_circle_outlined,
+                  color: Color(0xFF0B5B2C)),
+              title: const Text('Profile photo',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(_profileImage == null
+                  ? 'Add a photo to personalize your account'
+                  : 'Your photo is saved on this device'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _showPhotoOptions,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            color: const Color(0xFFEAF6EA),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [const FreshoraLogo(size: 28), const SizedBox(width: 8), Text('FRESHORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2))]),
-                    const SizedBox(height: 12),
-                    Text(widget.session.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 3),
-                    Text(widget.session.phone, style: const TextStyle(color: Colors.white70)),
-                    const SizedBox(height: 4),
-                    const Text('Customer profile', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      const SizedBox(height: 12),
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.account_circle_outlined, color: Color(0xFF0B5B2C)),
-          title: const Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text(_profileImage == null ? 'Add a photo to personalize your account' : 'Your photo is saved on this device'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: _showPhotoOptions,
-        ),
-      ),
-      const SizedBox(height: 10),
-      Card(
-        color: const Color(0xFFEAF6EA),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: const [
-              Icon(Icons.card_giftcard, color: Color(0xFF0B5B2C)),
-              SizedBox(width: 8),
-              Text('Refer & Earn', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            ]),
-            const SizedBox(height: 6),
-            const Text('Share FRESHORA with friends and family. They get a discount, you get rewarded.'),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF0B5B2C), style: BorderStyle.solid),
-                  ),
-                  child: Text(_referralCode, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(onPressed: () => _copyReferralCode(context), icon: const Icon(Icons.copy), tooltip: 'Copy code'),
-            ]),
-            const SizedBox(height: 10),
-            FilledButton.icon(
-              onPressed: () => _shareReferralCode(context),
-              icon: const Icon(Icons.share),
-              label: const Text('Invite friends'),
+                    Row(children: const [
+                      Icon(Icons.card_giftcard, color: Color(0xFF0B5B2C)),
+                      SizedBox(width: 8),
+                      Text('Refer & Earn',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 16)),
+                    ]),
+                    const SizedBox(height: 6),
+                    const Text(
+                        'Share FRESHORA with friends and family. They get a discount, you get rewarded.'),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: const Color(0xFF0B5B2C),
+                                style: BorderStyle.solid),
+                          ),
+                          child: Text(_referralCode,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                          onPressed: () => _copyReferralCode(context),
+                          icon: const Icon(Icons.copy),
+                          tooltip: 'Copy code'),
+                    ]),
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      onPressed: () => _shareReferralCode(context),
+                      icon: const Icon(Icons.share),
+                      label: const Text('Invite friends'),
+                    ),
+                  ]),
             ),
-          ]),
-        ),
-      ),
-      const SizedBox(height: 14),
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.favorite_border),
-          title: const Text('My Favorites'),
-          subtitle: const Text('View your saved products'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: widget.onManageFavorites,
-        ),
-      ),
-      Card(
-        child: ListTile(
-          leading: const Icon(Icons.location_on_outlined),
-          title: const Text('My Addresses'),
-          subtitle: Text(widget.addresses.isEmpty ? 'Add a delivery address' : '${widget.addresses.length} saved address${widget.addresses.length == 1 ? '' : 'es'}'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: widget.onManageAddresses,
-        ),
-      ),
-      ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About FRESHORA']
-        .map((x) => Card(child: ListTile(
-          title: Text(x),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _openMenu(context, x),
-        ))),
-      const SizedBox(height: 10),
-      OutlinedButton.icon(onPressed: widget.onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
-    ],
-  );
+          ),
+          const SizedBox(height: 14),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.favorite_border),
+              title: const Text('My Favorites'),
+              subtitle: const Text('View your saved products'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: widget.onManageFavorites,
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.location_on_outlined),
+              title: const Text('My Addresses'),
+              subtitle: Text(widget.addresses.isEmpty
+                  ? 'Add a delivery address'
+                  : '${widget.addresses.length} saved address${widget.addresses.length == 1 ? '' : 'es'}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: widget.onManageAddresses,
+            ),
+          ),
+          ...[
+            'My Orders',
+            'Payment Methods',
+            'Notifications',
+            'Help & Support',
+            'About FRESHORA'
+          ].map((x) => Card(
+                  child: ListTile(
+                title: Text(x),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _openMenu(context, x),
+              ))),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+              onPressed: widget.onSignOut,
+              icon: const Icon(Icons.logout),
+              label: const Text('Sign out')),
+        ],
+      );
 }
-
 
 class _AddressFormDialog extends StatefulWidget {
   const _AddressFormDialog({this.existing});
@@ -3100,51 +4288,69 @@ class _AddressFormDialogState extends State<_AddressFormDialog> {
     super.dispose();
   }
 
-  bool get validPincode => pincode.text.trim().length == 6 && int.tryParse(pincode.text.trim()) != null;
+  bool get validPincode =>
+      pincode.text.trim().length == 6 &&
+      int.tryParse(pincode.text.trim()) != null;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
-    content: SingleChildScrollView(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: label, decoration: const InputDecoration(labelText: 'Label (Home, Work...)')),
-        TextField(controller: address, decoration: const InputDecoration(labelText: 'Address')),
-        TextField(controller: city, decoration: const InputDecoration(labelText: 'City')),
-        TextField(controller: pincode, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'PIN code')),
-        TextField(controller: landmark, decoration: const InputDecoration(labelText: 'Landmark (optional)')),
-      ]),
-    ),
-    actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      FilledButton(
-        onPressed: () {
-          if (label.text.trim().isEmpty ||
-              address.text.trim().isEmpty ||
-              city.text.trim().isEmpty ||
-              !validPincode) {
-            return;
-          }
-          Navigator.pop(
-            context,
-            CustomerAddress(
-              id: widget.existing?.id,
-              label: label.text.trim(),
-              fullAddress: address.text.trim(),
-              city: city.text.trim(),
-              pincode: pincode.text.trim(),
-              landmark: landmark.text.trim(),
-              isDefault: widget.existing?.isDefault ?? false,
-            ),
-          );
-        },
-        child: const Text('Save'),
-      ),
-    ],
-  );
+        title: Text(widget.existing == null ? 'Add Address' : 'Edit Address'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+                controller: label,
+                decoration:
+                    const InputDecoration(labelText: 'Label (Home, Work...)')),
+            TextField(
+                controller: address,
+                decoration: const InputDecoration(labelText: 'Address')),
+            TextField(
+                controller: city,
+                decoration: const InputDecoration(labelText: 'City')),
+            TextField(
+                controller: pincode,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'PIN code')),
+            TextField(
+                controller: landmark,
+                decoration:
+                    const InputDecoration(labelText: 'Landmark (optional)')),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (label.text.trim().isEmpty ||
+                  address.text.trim().isEmpty ||
+                  city.text.trim().isEmpty ||
+                  !validPincode) {
+                return;
+              }
+              Navigator.pop(
+                context,
+                CustomerAddress(
+                  id: widget.existing?.id,
+                  label: label.text.trim(),
+                  fullAddress: address.text.trim(),
+                  city: city.text.trim(),
+                  pincode: pincode.text.trim(),
+                  landmark: landmark.text.trim(),
+                  isDefault: widget.existing?.isDefault ?? false,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      );
 }
 
 class AddressBookPage extends StatefulWidget {
-  const AddressBookPage({super.key, required this.addresses, required this.onChanged, this.api});
+  const AddressBookPage(
+      {super.key, required this.addresses, required this.onChanged, this.api});
   final List<CustomerAddress> addresses;
   final VoidCallback onChanged;
   final HttpCustomerRepository? api;
@@ -3162,14 +4368,23 @@ class _AddressBookPageState extends State<AddressBookPage> {
 
     if (!mounted || result == null) return;
     try {
-      final saved = widget.api == null ? result : (index == null ? await widget.api!.createAddress(result) : await widget.api!.updateAddress(result));
+      final saved = widget.api == null
+          ? result
+          : (index == null
+              ? await widget.api!.createAddress(result)
+              : await widget.api!.updateAddress(result));
       if (!mounted) return;
       setState(() {
-        if (index == null) widget.addresses.add(saved); else widget.addresses[index] = saved;
+        if (index == null)
+          widget.addresses.add(saved);
+        else
+          widget.addresses[index] = saved;
       });
       widget.onChanged();
     } on CustomerApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -3178,10 +4393,15 @@ class _AddressBookPageState extends State<AddressBookPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete address?'),
-        content: Text('Remove ${widget.addresses[index].label} from saved addresses?'),
+        content: Text(
+            'Remove ${widget.addresses[index].label} from saved addresses?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
         ],
       ),
     );
@@ -3193,37 +4413,47 @@ class _AddressBookPageState extends State<AddressBookPage> {
       setState(() => widget.addresses.removeAt(index));
       widget.onChanged();
     } on CustomerApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('My Addresses')),
-    floatingActionButton: FloatingActionButton.extended(onPressed: () => _editAddress(), icon: const Icon(Icons.add), label: const Text('Add Address')),
-    body: widget.addresses.isEmpty
-        ? const Center(child: Text('No saved addresses yet.'))
-        : ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-            itemCount: widget.addresses.length,
-            itemBuilder: (context, index) {
-              final item = widget.addresses[index];
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.location_on_outlined),
-                  title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(item.landmark.isEmpty ? item.displayAddress : '${item.displayAddress}\n${item.landmark}'),
-                  isThreeLine: item.landmark.isNotEmpty,
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) => value == 'edit' ? _editAddress(existing: item, index: index) : _deleteAddress(index),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-  );
+        appBar: AppBar(title: const Text('My Addresses')),
+        floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _editAddress(),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Address')),
+        body: widget.addresses.isEmpty
+            ? const Center(child: Text('No saved addresses yet.'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+                itemCount: widget.addresses.length,
+                itemBuilder: (context, index) {
+                  final item = widget.addresses[index];
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.location_on_outlined),
+                      title: Text(item.label,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      subtitle: Text(item.landmark.isEmpty
+                          ? item.displayAddress
+                          : '${item.displayAddress}\n${item.landmark}'),
+                      isThreeLine: item.landmark.isNotEmpty,
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) => value == 'edit'
+                            ? _editAddress(existing: item, index: index)
+                            : _deleteAddress(index),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      );
 }

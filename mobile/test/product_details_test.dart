@@ -3,12 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:talegaon_fresh/main.dart';
 
 void main() {
-  testWidgets('customer can select quantity on product details', (tester) async {
+  testWidgets('customer can select quantity on product details',
+      (tester) async {
     const product = Product(
       name: 'Tomato',
       unit: '1 kg',
       price: 30,
       icon: Icons.circle,
+      mrp: 40,
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -23,6 +25,7 @@ void main() {
     expect(find.text('Product Details'), findsOneWidget);
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.text('₹30 / 1 kg'), findsOneWidget);
+    expect(find.text('MRP ₹40  |  You save ₹10'), findsOneWidget);
     await tester.ensureVisible(find.text('Quantity'));
     await tester.pumpAndSettle();
     expect(find.text('1'), findsOneWidget);
@@ -32,6 +35,5 @@ void main() {
 
     expect(find.text('2'), findsOneWidget);
     expect(find.text('₹60'), findsOneWidget);
-
   });
 }

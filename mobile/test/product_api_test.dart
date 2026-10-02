@@ -20,6 +20,7 @@ void main() {
               'unit': '1 kg',
               'category': 'Vegetables',
               'price': 30,
+              'mrp': 35,
               'in_stock': true,
             },
           ],
@@ -38,6 +39,7 @@ void main() {
     final products = await repository.fetchProducts();
     expect(products.single.name, 'Tomato');
     expect(products.single.category, 'Vegetables');
+    expect(products.single.mrp, 35);
   });
 
   test('product API defaults missing category for backward compatibility', () {
@@ -49,6 +51,7 @@ void main() {
       'in_stock': true,
     });
     expect(product.category, 'Other');
+    expect(product.mrp, isNull);
   });
 
   test('product API omits authorization header without a token', () async {
@@ -84,5 +87,4 @@ void main() {
       throwsA(isA<ApiUnauthorizedException>()),
     );
   });
-
 }

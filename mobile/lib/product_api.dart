@@ -10,6 +10,7 @@ class ApiProduct {
     required this.price,
     required this.inStock,
     this.category = 'Other',
+    this.mrp,
     this.imageUrl,
   });
 
@@ -19,23 +20,28 @@ class ApiProduct {
   final double price;
   final bool inStock;
   final String category;
+  final double? mrp;
   final String? imageUrl;
 
   factory ApiProduct.fromJson(Map<String, dynamic> json) {
     final rawImageUrl = json['image_url'] ?? json['imageUrl'];
+    final price = (json['price'] as num).toDouble();
+    final rawMrp = json['mrp'];
     return ApiProduct(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String,
-        unit: json['unit'] as String,
-        category: json['category'] is String && (json['category'] as String).trim().isNotEmpty
-            ? (json['category'] as String).trim()
-            : 'Other',
-        price: (json['price'] as num).toDouble(),
-        inStock: json['in_stock'] as bool? ?? true,
-        imageUrl: rawImageUrl is String && rawImageUrl.trim().isNotEmpty
-            ? rawImageUrl.trim()
-            : null,
-      );
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      unit: json['unit'] as String,
+      category: json['category'] is String &&
+              (json['category'] as String).trim().isNotEmpty
+          ? (json['category'] as String).trim()
+          : 'Other',
+      price: price,
+      inStock: json['in_stock'] as bool? ?? true,
+      mrp: rawMrp is num && rawMrp >= price ? rawMrp.toDouble() : null,
+      imageUrl: rawImageUrl is String && rawImageUrl.trim().isNotEmpty
+          ? rawImageUrl.trim()
+          : null,
+    );
   }
 }
 
@@ -56,7 +62,8 @@ class HttpProductRepository implements ProductRepository {
         _baseUrl = (baseUrl ??
                 const String.fromEnvironment(
                   'API_BASE_URL',
-                  defaultValue: 'https://talegaon-fresh-ai-backend.onrender.com',
+                  defaultValue:
+                      'https://talegaon-fresh-ai-backend.onrender.com',
                 ))
             .replaceFirst(RegExp(r'/+$'), ''),
         _token = token;
