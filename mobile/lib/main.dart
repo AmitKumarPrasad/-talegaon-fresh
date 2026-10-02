@@ -843,22 +843,37 @@ class _TalegaonFreshAppState extends State<TalegaonFreshApp> {
 
 const _brandGreen = Color(0xFF168447);
 const _brandGreenDark = Color(0xFF0D5C30);
-const _surfaceTint = Color(0xFFF7FAF5);
+const _surfaceTint = Color(0xFFF6F9F6);
+const _ink = Color(0xFF173021);
+const _mutedInk = Color(0xFF5E6F64);
 
 ThemeData _buildTheme() {
-  final colorScheme = ColorScheme.fromSeed(seedColor: _brandGreen);
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: _brandGreen, brightness: Brightness.light);
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: _surfaceTint,
     fontFamily: 'Roboto',
+    textTheme: ThemeData.light().textTheme.apply(
+      bodyColor: _ink,
+      displayColor: _ink,
+      fontFamily: 'Roboto',
+    ).copyWith(
+      titleLarge: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+      titleMedium: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+      bodyLarge: const TextStyle(fontSize: 16, height: 1.35),
+      bodyMedium: const TextStyle(fontSize: 14, height: 1.3),
+      labelLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+    ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: _surfaceTint,
-      foregroundColor: Colors.black87,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: _ink,
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
-          color: Colors.black87, fontSize: 20, fontWeight: FontWeight.w800),
+          color: _ink, fontSize: 20, fontWeight: FontWeight.w800),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
@@ -892,10 +907,10 @@ ThemeData _buildTheme() {
       disabledColor: const Color(0xFFF0F3F1),
       checkmarkColor: Colors.white,
       labelStyle:
-          const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+          const TextStyle(color: _ink, fontWeight: FontWeight.w700, fontSize: 13),
       side: const BorderSide(color: Color(0xFFD7E0DA)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -959,10 +974,11 @@ class SplashScreen extends StatelessWidget {
                 const Text('FRESHORA',
                     style: TextStyle(
                         fontSize: 30,
+                        letterSpacing: 1.2,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF168447))),
                 const SizedBox(height: 8),
-                const Text('Fresh. Local. For a Healthier You.',
+                const Text('Fresh • Local • Delivered.',
                     style: TextStyle(fontSize: 15, color: Colors.black54)),
               ],
             ),
@@ -2068,9 +2084,9 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
             child: Row(
               children: [
-                const Text('Categories',
+                const Text('Shop by category',
                     style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
                 const Spacer(),
                 Text('${filtered.length} items',
                     style:
@@ -2084,12 +2100,12 @@ class _ProductsPageState extends State<ProductsPage> {
             margin: const EdgeInsets.fromLTRB(20, 8, 20, 6),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F6F2),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: const Color(0xFFD7E0DA)),
             ),
             child: SizedBox(
-              height: 48,
+              height: 52,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 scrollDirection: Axis.horizontal,
@@ -2098,12 +2114,14 @@ class _ProductsPageState extends State<ProductsPage> {
                 itemBuilder: (context, index) {
                   final value = categories[index];
                   return ChoiceChip(
-                    label: Text(
-                      value,
-                      style: TextStyle(
-                        color:
-                            category == value ? Colors.white : _brandGreenDark,
-                        fontWeight: FontWeight.w800,
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          color: category == value ? Colors.white : _ink,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     selected: category == value,
@@ -2470,16 +2488,31 @@ class ProductCard extends StatelessWidget {
                         ])),
                         const SizedBox(height: 10),
                         Text(product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w800, fontSize: 16)),
-                        Text(
-                            '₹' +
-                                product.price.toStringAsFixed(0) +
-                                '/' +
-                                product.unit,
-                            style: const TextStyle(
-                                color: Color(0xFF168447),
-                                fontWeight: FontWeight.w700)),
+                                color: _ink,
+                                fontWeight: FontWeight.w800, fontSize: 15)),
+                        const SizedBox(height: 3),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text('₹${product.price.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                    color: _brandGreenDark,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 17)),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text('per ${product.unit}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: _mutedInk, fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
                         if (product.mrp != null && product.mrp! > product.price)
                           Text(
                             'MRP ₹${product.mrp!.toStringAsFixed(0)}  Save ₹${(product.mrp! - product.price).toStringAsFixed(0)}',
