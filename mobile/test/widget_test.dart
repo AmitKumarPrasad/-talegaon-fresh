@@ -7,8 +7,18 @@ import 'package:talegaon_fresh/product_api.dart';
 class FakeProductRepository implements ProductRepository {
   @override
   Future<List<ApiProduct>> fetchProducts() async => const [
-        ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true),
-        ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true),
+        ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true, category: 'Vegetables'),
+        ApiProduct(id: 2, name: 'Potato', unit: '1 kg', price: 25, inStock: true, category: 'Vegetables'),
+      ];
+}
+
+class ExpandedProductRepository implements ProductRepository {
+  @override
+  Future<List<ApiProduct>> fetchProducts() async => const [
+        ApiProduct(id: 1, name: 'Tomato', unit: '1 kg', price: 30, inStock: true, category: 'Vegetables'),
+        ApiProduct(id: 21, name: 'Amul Taaza Milk', unit: '1 L', price: 59, inStock: true, category: 'Dairy'),
+        ApiProduct(id: 26, name: "Lay's Cream & Onion Chips", unit: '58 g', price: 20, inStock: true, category: 'Snacks'),
+        ApiProduct(id: 31, name: 'Aashirvaad Whole Wheat Atta', unit: '5 kg', price: 264, inStock: true, category: 'Grocery'),
       ];
 }
 
@@ -141,6 +151,36 @@ void main() {
     await tester.tap(find.byTooltip('Notifications'));
     await tester.pumpAndSettle();
     expect(find.text('No notifications yet'), findsOneWidget);
+  });
+
+  testWidgets('product catalog filters expanded backend categories', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          repository: ExpandedProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Talegaon Customer',
+            token: 'test-token',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Products'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dairy'), findsOneWidget);
+    expect(find.text('Snacks'), findsOneWidget);
+    expect(find.text('Grocery'), findsOneWidget);
+
+    await tester.tap(find.text('Dairy'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Amul Taaza Milk'), findsOneWidget);
+    expect(find.text('Tomato'), findsNothing);
+    expect(find.text("Lay's Cream & Onion Chips"), findsNothing);
   });
 
   testWidgets('customer cart persists across app sessions', (tester) async {
