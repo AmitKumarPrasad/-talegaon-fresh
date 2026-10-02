@@ -23,6 +23,8 @@ void main() {
     expect(find.text('Product Details'), findsOneWidget);
     expect(find.text('Tomato'), findsOneWidget);
     expect(find.text('₹30 / 1 kg'), findsOneWidget);
+    await tester.ensureVisible(find.text('Quantity'));
+    await tester.pumpAndSettle();
     expect(find.text('1'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.add).last);
