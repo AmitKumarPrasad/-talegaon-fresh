@@ -34,12 +34,25 @@ class CustomerSession {
 }
 
 class Product {
-  const Product({required this.name, required this.unit, required this.price, required this.icon, this.imageUrl});
+  const Product({
+    required this.name,
+    required this.unit,
+    required this.price,
+    required this.icon,
+    this.category = 'Other',
+    this.imageUrl,
+  });
+
   final String name, unit;
   final double price;
   final IconData icon;
+  final String category;
   final String? imageUrl;
 }
+
+bool _isFreshCategory(String category) =>
+    const {'Vegetables', 'Fruits', 'Leafy Greens'}.contains(category);
+
 
 const Map<String, String> _productImageUrls = {
   'tomato': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Tomato_je.jpg/400px-Tomato_je.jpg',
@@ -762,6 +775,7 @@ class _AppShellState extends State<AppShell> {
             unit: unit,
             price: price.toDouble(),
             icon: _iconForProduct(name),
+            category: item['category'] is String ? item['category'] as String : 'Other',
             imageUrl: _imageUrlForProduct(name),
           ),
           quantity.toInt(),
@@ -885,6 +899,7 @@ class _AppShellState extends State<AppShell> {
       'name': item.product.name,
       'unit': item.product.unit,
       'price': item.product.price,
+      'category': item.product.category,
       'quantity': item.quantity,
     }).toList();
     await prefs.setString(_cartStorageKey, jsonEncode(data));
@@ -941,6 +956,7 @@ class _AppShellState extends State<AppShell> {
                   unit: p.unit,
                   price: p.price,
                   icon: _iconForProduct(p.name),
+                  category: p.category,
                   imageUrl: p.imageUrl ?? _imageUrlForProduct(p.name),
                 ))
             .toList();
@@ -1176,7 +1192,7 @@ class _HomePageState extends State<HomePage> {
             controller: _searchController,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: 'Search fruits, vegetables...',
+              hintText: 'Search vegetables, dairy, snacks, grocery...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: query.isEmpty
                   ? null
@@ -1224,7 +1240,7 @@ class _HomePageState extends State<HomePage> {
       ),
       const SliverPadding(
         padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-        sliver: SliverToBoxAdapter(child: Text("Today's Fresh Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
+        sliver: SliverToBoxAdapter(child: Text("Today's Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
       ),
       if (widget.loading)
         const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
@@ -1299,12 +1315,24 @@ class _ProductsPageState extends State<ProductsPage> {
 
   static const leafyKeywords = [
     'spinach', 'palak', 'methi', 'lettuce', 'coriander', 'cilantro',
-    'cabbage', 'mint', 'pudina', 'leafy greens', 'curry leaves', 'dill', 'shepu',
+    'mint', 'pudina', 'leafy greens', 'curry leaves', 'dill', 'shepu',
   ];
   static const fruitKeywords = [
     'apple', 'banana', 'orange', 'pomegranate', 'grape', 'guava', 'papaya',
     'watermelon', 'muskmelon', 'kharbuja', 'pineapple', 'mango', 'lemon',
     'kiwi', 'sapota', 'chikoo', 'dragon fruit',
+  ];
+  static const preferredCategoryOrder = [
+    'Vegetables',
+    'Leafy Greens',
+    'Fruits',
+    'Dairy',
+    'Grocery',
+    'Snacks',
+    'Masala & Spices',
+    'Beverages',
+    'Bakery & Breakfast',
+    'Instant Food',
   ];
 
   @override
@@ -1313,19 +1341,31 @@ class _ProductsPageState extends State<ProductsPage> {
     super.dispose();
   }
 
-  bool matchesCategory(Product product) {
-    if (category == 'All') return true;
+  String _categoryFor(Product product) {
+    final serverCategory = product.category.trim();
+    if (serverCategory.isNotEmpty && serverCategory != 'Other') {
+      return serverCategory;
+    }
+
     final name = product.name.toLowerCase();
-    if (category == 'Leafy Greens') {
-      return leafyKeywords.any(name.contains);
-    }
-    if (category == 'Fruits') {
-      return fruitKeywords.any(name.contains);
-    }
-    return !leafyKeywords.any(name.contains) && !fruitKeywords.any(name.contains);
+    if (leafyKeywords.any(name.contains)) return 'Leafy Greens';
+    if (fruitKeywords.any(name.contains)) return 'Fruits';
+    return 'Vegetables';
   }
 
+  List<String> get _availableCategories {
+    final present = widget.products.map(_categoryFor).toSet();
+    final ordered = preferredCategoryOrder.where(present.contains).toList();
+    final extras = present.where((value) => !preferredCategoryOrder.contains(value)).toList()
+      ..sort();
+    return ['All', ...ordered, ...extras];
+  }
+
+  bool matchesCategory(Product product) =>
+      category == 'All' || _categoryFor(product) == category;
+
   void _showFilters() {
+    final values = _availableCategories;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -1339,12 +1379,12 @@ class _ProductsPageState extends State<ProductsPage> {
             children: [
               const Text('Filter products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              const Text('Choose a category to narrow your fresh produce.', style: TextStyle(color: Colors.black54)),
+              const Text('Choose a category to narrow the FRESHORA catalog.', style: TextStyle(color: Colors.black54)),
               const SizedBox(height: 18),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: ['All', 'Vegetables', 'Fruits', 'Leafy Greens'].map((value) => ChoiceChip(
+                children: values.map((value) => ChoiceChip(
                   label: Text(
                     value,
                     style: TextStyle(
@@ -1379,6 +1419,7 @@ class _ProductsPageState extends State<ProductsPage> {
   @override
   Widget build(BuildContext context) {
     final query = searchController.text.trim().toLowerCase();
+    final categories = _availableCategories;
     final filtered = widget.products.where((product) {
       final matchesSearch = query.isEmpty || product.name.toLowerCase().contains(query) || product.unit.toLowerCase().contains(query);
       return matchesSearch && matchesCategory(product);
@@ -1391,7 +1432,7 @@ class _ProductsPageState extends State<ProductsPage> {
           pinned: true,
           backgroundColor: _surfaceTint,
           surfaceTintColor: Colors.transparent,
-          title: const Text('Fresh Products'),
+          title: const Text('Products'),
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -1423,7 +1464,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 controller: searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
-                  hintText: 'Search tomato, apple, spinach...',
+                  hintText: 'Search milk, atta, snacks, fruits...',
                   prefixIcon: Icon(Icons.search_rounded),
                   suffixIcon: Icon(Icons.mic_none_rounded),
                   border: InputBorder.none,
@@ -1460,11 +1501,10 @@ class _ProductsPageState extends State<ProductsPage> {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 scrollDirection: Axis.horizontal,
-                itemCount: 4,
+                itemCount: categories.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
-                  const values = ['All', 'Vegetables', 'Fruits', 'Leafy Greens'];
-                  final value = values[index];
+                  final value = categories[index];
                   return ChoiceChip(
                     label: Text(
                       value,
@@ -1728,12 +1768,20 @@ class ProductCard extends StatelessWidget {
               top: 6,
               left: 6,
               child: Container(
+                constraints: const BoxConstraints(maxWidth: 120),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: const Color(0xFF168447), borderRadius: BorderRadius.circular(20)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.eco, size: 11, color: Colors.white),
-                  SizedBox(width: 3),
-                  Text('Fresh', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_isFreshCategory(product.category) ? Icons.eco : Icons.inventory_2_outlined, size: 11, color: Colors.white),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(
+                      product.category == 'Other' ? 'Product' : product.category,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                    ),
+                  ),
                 ]),
               ),
             ),
@@ -1817,8 +1865,21 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         Text(widget.product.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
         const SizedBox(height: 6),
         Text('₹' + widget.product.price.toStringAsFixed(0) + ' / ' + widget.product.unit, style: const TextStyle(color: Color(0xFF168447), fontSize: 18, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 18),
-        const Text('Freshly sourced and available for today\'s delivery.', style: TextStyle(color: Colors.black54, fontSize: 16)),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Chip(
+            avatar: Icon(_isFreshCategory(widget.product.category) ? Icons.eco_outlined : Icons.inventory_2_outlined, size: 17),
+            label: Text(widget.product.category == 'Other' ? 'Product' : widget.product.category),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _isFreshCategory(widget.product.category)
+              ? 'Freshly sourced and available for today\'s delivery.'
+              : 'Available from the FRESHORA daily-needs catalog for convenient home delivery.',
+          style: const TextStyle(color: Colors.black54, fontSize: 16),
+        ),
         const SizedBox(height: 24),
         const Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
