@@ -9,6 +9,7 @@ class ApiProduct {
     required this.unit,
     required this.price,
     required this.inStock,
+    this.category = 'Other',
     this.imageUrl,
   });
 
@@ -17,6 +18,7 @@ class ApiProduct {
   final String unit;
   final double price;
   final bool inStock;
+  final String category;
   final String? imageUrl;
 
   factory ApiProduct.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,9 @@ class ApiProduct {
         id: (json['id'] as num).toInt(),
         name: json['name'] as String,
         unit: json['unit'] as String,
+        category: json['category'] is String && (json['category'] as String).trim().isNotEmpty
+            ? (json['category'] as String).trim()
+            : 'Other',
         price: (json['price'] as num).toDouble(),
         inStock: json['in_stock'] as bool? ?? true,
         imageUrl: rawImageUrl is String && rawImageUrl.trim().isNotEmpty
