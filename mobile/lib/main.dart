@@ -1552,7 +1552,7 @@ class _AppShellState extends State<AppShell> {
               const NavigationDestination(
                   icon: Icon(Icons.storefront_outlined),
                   selectedIcon: Icon(Icons.storefront),
-                  label: 'Shop'),
+                  label: 'Products'),
               NavigationDestination(
                 icon: Badge(
                     isLabelVisible: count > 0,
