@@ -45,7 +45,7 @@ void main() {
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('My Profile'), findsOneWidget);
+    expect(find.text('Customer profile'), findsOneWidget);
     expect(find.text('9876543210'), findsOneWidget);
   });
 
@@ -116,6 +116,31 @@ void main() {
     expect(find.text("Today's Fresh Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
     expect(find.text('₹30/1 kg'), findsWidgets);
+  });
+
+  testWidgets('Home search filters products and opens notifications', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          repository: FakeProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Talegaon Customer',
+            token: 'test-token',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'tomato');
+    await tester.pump();
+    expect(find.text('Tomato'), findsWidgets);
+    expect(find.text('Potato'), findsNothing);
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notifications yet'), findsOneWidget);
   });
 
   testWidgets('customer cart persists across app sessions', (tester) async {

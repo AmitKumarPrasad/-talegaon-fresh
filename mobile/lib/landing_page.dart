@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'widgets/freshora_logo.dart';
 
 class TalegaonLandingPage extends StatelessWidget {
@@ -13,23 +12,9 @@ class TalegaonLandingPage extends StatelessWidget {
   final VoidCallback onSignIn;
 
   static const _green = Color(0xFF0B5B2C);
-  static const _brightGreen = Color(0xFF159447);
   static const _yellow = Color(0xFFFFD73F);
   static const _ink = Color(0xFF14251A);
   static const _page = Color(0xFFF6F8EF);
-
-  Future<void> _orderOnWhatsApp(BuildContext context) async {
-    final uri = Uri.parse(
-      'https://wa.me/918788543135?text=${Uri.encodeComponent('Hi FRESHORA, I would like to place an order.')}',
-    );
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Could not open WhatsApp on this device.')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -39,9 +24,6 @@ class TalegaonLandingPage extends StatelessWidget {
             builder: (context, viewport) {
               final compact = viewport.maxWidth < 720;
               final horizontalPadding = compact ? 16.0 : 32.0;
-              final contentWidth =
-                  (viewport.maxWidth < 1180 ? viewport.maxWidth : 1180) -
-                      horizontalPadding * 2;
               return SingleChildScrollView(
                 child: Center(
                   child: ConstrainedBox(
@@ -57,16 +39,14 @@ class TalegaonLandingPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _header(compact),
-                          const SizedBox(height: 22),
+                          const SizedBox(height: 32),
                           _hero(compact),
-                          const SizedBox(height: 26),
-                          _benefits(compact, contentWidth),
-                          const SizedBox(height: 28),
-                          _whatsAppBanner(context, compact),
-                          const SizedBox(height: 30),
-                          _howItWorks(compact, contentWidth),
-                          const SizedBox(height: 28),
-                          _footer(compact),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Fresh fruits and vegetables, simply delivered.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Color(0xFF667268), fontSize: 15),
+                          ),
                         ],
                       ),
                     ),
@@ -224,192 +204,6 @@ class TalegaonLandingPage extends StatelessWidget {
     );
   }
 
-  Widget _benefits(bool compact, double maxWidth) {
-    final columns = maxWidth >= 850 ? 4 : 2;
-    const gap = 12.0;
-    final cardWidth = (maxWidth - gap * (columns - 1)) / columns;
-    final benefits = [
-      (Icons.eco_rounded, 'Freshly selected', 'Picked with care'),
-      (
-        Icons.workspace_premium_rounded,
-        'Good quality',
-        'Quality you can trust'
-      ),
-      (Icons.local_shipping_rounded, 'Local delivery', 'Delivered to your door'),
-      (Icons.storefront_rounded, 'Wide variety', 'Everyday favourites'),
-    ];
-    return Wrap(
-      spacing: gap,
-      runSpacing: gap,
-      children: [
-        for (var i = 0; i < benefits.length; i++)
-          SizedBox(
-            width: cardWidth,
-            child: _BenefitCard(
-              icon: benefits[i].$1,
-              title: benefits[i].$2,
-              detail: benefits[i].$3,
-              accent: i == 1 ? const Color(0xFFF2A900) : _brightGreen,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _whatsAppBanner(BuildContext context, bool compact) => Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 20 : 32,
-          vertical: compact ? 22 : 25,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF078C42),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1F07512A),
-              blurRadius: 20,
-              offset: Offset(0, 9),
-            ),
-          ],
-        ),
-        child: compact
-            ? Column(
-                children: [
-                  _whatsAppCopy(),
-                  const SizedBox(height: 16),
-                  _whatsAppButton(context, wide: true),
-                ],
-              )
-            : Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 31,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.chat_rounded,
-                        color: Color(0xFF078C42), size: 34),
-                  ),
-                  const SizedBox(width: 17),
-                  Expanded(child: _whatsAppCopy()),
-                  const SizedBox(width: 16),
-                  _whatsAppButton(context),
-                ],
-              ),
-      );
-
-  Widget _whatsAppCopy() => const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Prefer WhatsApp?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Order directly with our local team',
-            style: TextStyle(color: Colors.white70),
-          ),
-        ],
-      );
-
-  Widget _whatsAppButton(BuildContext context, {bool wide = false}) =>
-      FilledButton.icon(
-        onPressed: () => _orderOnWhatsApp(context),
-        icon: const Icon(Icons.chat_bubble_rounded),
-        label: const Text('Order on WhatsApp  •  87885 43135'),
-        style: FilledButton.styleFrom(
-          minimumSize: Size(wide ? double.infinity : 0, 52),
-          backgroundColor: Colors.white,
-          foregroundColor: _green,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        ),
-      );
-
-  Widget _howItWorks(bool compact, double maxWidth) {
-    final columns = maxWidth >= 900
-        ? 5
-        : maxWidth >= 560
-            ? 3
-            : 1;
-    const gap = 10.0;
-    final width = (maxWidth - gap * (columns - 1)) / columns;
-    final steps = [
-      (Icons.shopping_cart_rounded, 'Browse', 'Choose your produce'),
-      (Icons.chat_rounded, 'Place an order', 'App or WhatsApp'),
-      (Icons.fact_check_rounded, 'We confirm', 'Availability and price'),
-      (Icons.payments_rounded, 'Choose payment', 'UPI or cash on delivery'),
-      (Icons.home_rounded, 'Enjoy at home', 'Freshness delivered'),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Good food, made simple',
-                style: TextStyle(
-                  color: _ink,
-                  fontSize: compact ? 23 : 29,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 7),
-        const Text(
-          'From choosing your produce to a fresh delivery at home.',
-          style: TextStyle(color: Color(0xFF667268), fontSize: 15),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (var i = 0; i < steps.length; i++)
-              SizedBox(
-                width: width,
-                child: _StepCard(
-                  number: i + 1,
-                  icon: steps[i].$1,
-                  title: steps[i].$2,
-                  detail: steps[i].$3,
-                ),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _footer(bool compact) => Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 18 : 28,
-          vertical: compact ? 18 : 20,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF073D24),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Wrap(
-          alignment: WrapAlignment.spaceAround,
-          runAlignment: WrapAlignment.center,
-          spacing: 22,
-          runSpacing: 14,
-          children: const [
-            _FooterValue(icon: Icons.eco_rounded, label: 'Fresh produce'),
-            _FooterValue(icon: Icons.favorite_rounded, label: 'Healthy choice'),
-            _FooterValue(icon: Icons.groups_rounded, label: 'Local business'),
-            _FooterValue(
-                icon: Icons.handshake_rounded, label: 'Here for our community'),
-          ],
-        ),
-      );
 }
 
 class _ProduceCollage extends StatelessWidget {
@@ -529,135 +323,3 @@ class _ProduceCollage extends StatelessWidget {
       );
 }
 
-class _BenefitCard extends StatelessWidget {
-  const _BenefitCard({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.accent,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE8EDE5)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: accent),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF203326))),
-                  const SizedBox(height: 3),
-                  Text(detail,
-                      style: const TextStyle(
-                          color: Color(0xFF718075), fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _StepCard extends StatelessWidget {
-  const _StepCard({
-    required this.number,
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
-
-  final int number;
-  final IconData icon;
-  final String title;
-  final String detail;
-
-  static const _colors = [
-    Color(0xFF8FE23E),
-    Color(0xFF18B553),
-    Color(0xFFFFC436),
-    Color(0xFF34B7DA),
-    Color(0xFFF579A9),
-  ];
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE8EDE5)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: _colors[(number - 1) % _colors.length],
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: const Color(0xFF143623), size: 25),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$number. $title',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF203326))),
-                  const SizedBox(height: 3),
-                  Text(detail,
-                      style: const TextStyle(
-                          color: Color(0xFF718075), fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _FooterValue extends StatelessWidget {
-  const _FooterValue({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF8FDF54), size: 22),
-          const SizedBox(width: 8),
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w700)),
-        ],
-      );
-}

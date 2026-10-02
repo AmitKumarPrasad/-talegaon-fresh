@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -231,15 +232,11 @@ class _LoginPageState extends State<LoginPage> {
                           icon: const Icon(Icons.arrow_back_rounded),
                         ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(22)),
-                      child: Icon(Icons.eco_rounded, size: 42, color: cs.onPrimaryContainer),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('FRESHORA', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    const Center(child: FreshoraLogo(size: 82)),
+                    const SizedBox(height: 16),
+                    Text('FRESHORA', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 22),
                     SegmentedButton<bool>(
                       segments: const [
@@ -705,33 +702,6 @@ class _AppShellState extends State<AppShell> {
     _loadAddresses();
     _loadFavorites();
     _clearRemoteLocalState();
-    _detectLocation();
-  }
-
-  Future<void> _detectLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    const rationaleShownKey = 'location_rationale_shown';
-    if (prefs.getBool(rationaleShownKey) != true) {
-      await prefs.setBool(rationaleShownKey, true);
-      if (!mounted) return;
-      final allow = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Use your location?'),
-          content: const Text(
-            'FRESHORA would like to use your approximate location to show your delivery area in the app. '
-            'We never share this with anyone else.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not now')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Allow')),
-          ],
-        ),
-      );
-      if (allow != true) return;
-    }
-    final label = await detectCurrentLocationLabel();
-    if (mounted && label != null) setState(() => detectedLocation = label);
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
@@ -923,11 +893,13 @@ class _AppShellState extends State<AppShell> {
   Future<OrderRecord> _completeOrder(String payment, CustomerAddress address, double total) async {
     if (_useRemoteCustomerApi) {
       final created = await customerApi.createOrder(List<CartItem>.from(cart), address, payment);
+      if (!mounted) return created;
       setState(() { orders.insert(0, created); cart.clear(); });
-      await customerApi.clearCart();
-      if (payment == 'UPI') {
-        final paymentUrl = await customerApi.createPaymentLink(int.parse(created.id));
-        return OrderRecord(id: created.id, total: created.total, payment: created.payment, address: created.address, createdAt: created.createdAt, status: created.status, items: created.items, paymentLinkUrl: paymentUrl);
+      try {
+        await customerApi.clearCart();
+      } catch (_) {
+        // The order is already committed. Keep it accessible for payment retry.
+        if (mounted) setState(() => cartSyncError = 'Order created. Please retry clearing your saved cart.');
       }
       return created;
     }
@@ -1080,14 +1052,15 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
+      HomePage(products: products, orders: orders, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
-      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
+      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, onContinueShopping: () => setState(() => tab = 0), api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
         session: widget.session,
         addresses: addresses,
+        orders: orders,
         onManageAddresses: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AddressBookPage(addresses: addresses, api: _useRemoteCustomerApi ? customerApi : null, onChanged: () { setState(() {}); _persistAddresses(); }))),
         onManageFavorites: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritesPage(products: products.where((p) => favorites.contains(p.name)).toList(), onAdd: add, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
@@ -1128,9 +1101,10 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required this.products, required this.orders, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
+  final List<OrderRecord> orders;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
@@ -1144,25 +1118,54 @@ class HomePage extends StatelessWidget {
   final ValueChanged<Product> onDecrementProduct;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.trim().toLowerCase();
+    final visibleProducts = widget.products.where((product) =>
+        query.isEmpty ||
+        product.name.toLowerCase().contains(query) ||
+        product.unit.toLowerCase().contains(query)).toList();
+    return CustomScrollView(
     slivers: [
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
         sliver: SliverToBoxAdapter(
           child: Row(children: [
-            const FreshoraLogo(size: 46),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset('assets/images/app_icon.png', width: 46, height: 46),
+            ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
               Row(children: [
-                if (location != null) ...[
+                if (widget.location != null) ...[
                   const Icon(Icons.location_on, size: 14, color: Colors.black54),
                   const SizedBox(width: 2),
                 ],
-                Flexible(child: Text(location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
+                Flexible(child: Text(widget.location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
               ]),
             ])),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders))),
+              icon: Badge(
+                isLabelVisible: widget.orders.any((order) => order.status != 'DELIVERED'),
+                child: const Icon(Icons.notifications_none),
+              ),
+            ),
           ]),
         ),
       ),
@@ -1170,9 +1173,21 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
         sliver: SliverToBoxAdapter(
           child: TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: 'Search fruits, vegetables...',
               prefixIcon: const Icon(Icons.search),
+              suffixIcon: query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close),
+                    ),
               filled: true, fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             ),
@@ -1183,14 +1198,26 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         sliver: SliverToBoxAdapter(
           child: Container(
-            height: 165, padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), gradient: const LinearGradient(colors: [Color(0xFF0D7A3D), Color(0xFF34A853)])),
-            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Fresh From\nLocal Farmers', style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)),
-              SizedBox(height: 8),
-              Text('Healthy food • Happier families', style: TextStyle(color: Colors.white70)),
-              Spacer(),
-              Text('Fresh • Local • Delivered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            height: 165,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(fit: StackFit.expand, children: [
+              Image.asset('assets/images/products/leafy_greens.png', fit: BoxFit.cover),
+              const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
+                colors: [Color(0xD90B5B2C), Color(0x99168B45)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ))),
+              const Padding(
+                padding: EdgeInsets.all(22),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Fresh From\nLocal Farmers', style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 8),
+                  Text('Healthy food • Happier families', style: TextStyle(color: Colors.white70)),
+                  Spacer(),
+                  Text('Fresh • Local • Delivered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ]),
+              ),
             ]),
           ),
         ),
@@ -1199,21 +1226,53 @@ class HomePage extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
         sliver: SliverToBoxAdapter(child: Text("Today's Fresh Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
       ),
-      if (loading)
+      if (widget.loading)
         const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
-      else if (error != null)
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: error!, onRetry: onRetry)))
-      else if (products.isEmpty)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products are available today.')))),
+      else if (widget.error != null)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
+      else if (visibleProducts.isEmpty)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(28), child: Center(child: Text(query.isEmpty ? 'No products are available today.' : 'No products match "$query".')))),
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite, quantity: quantityFor(products[i]), onIncrement: () => onIncrementProduct(products[i]), onDecrement: () => onDecrementProduct(products[i])), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: visibleProducts[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(visibleProducts[i].name), onToggleFavorite: widget.onToggleFavorite, quantity: widget.quantityFor(visibleProducts[i]), onIncrement: () => widget.onIncrementProduct(visibleProducts[i]), onDecrement: () => widget.onDecrementProduct(visibleProducts[i])), childCount: visibleProducts.length > 4 ? 4 : visibleProducts.length),
         ),
       ),
     ],
   );
+  }
+}
+
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key, required this.orders});
+
+  final List<OrderRecord> orders;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Notifications')),
+        body: orders.isEmpty
+            ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.black26),
+                SizedBox(height: 12),
+                Text('No notifications yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text('Order and delivery updates will appear here.'),
+              ]))
+            : ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: orders.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final order = orders[index];
+                  return Card(child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.shopping_bag_outlined)),
+                    title: Text('Order #${order.id} is ${order.status.replaceAll('_', ' ')}'),
+                    subtitle: Text('₹${order.total.toStringAsFixed(0)} • ${_formatDate(order.createdAt)}'),
+                  ));
+                },
+              ),
+      );
 }
 
 class ProductsPage extends StatefulWidget {
@@ -1802,7 +1861,7 @@ class _PromoOffer {
 }
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
+  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
   final List<CartItem> cart;
   final ValueChanged<CartItem> onIncrement;
   final ValueChanged<CartItem> onDecrement;
@@ -1811,6 +1870,7 @@ class CartPage extends StatefulWidget {
   final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
   @override
@@ -1920,7 +1980,7 @@ class _CartPageState extends State<CartPage> {
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, api: widget.api))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, onContinueShopping: widget.onContinueShopping, api: widget.api))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -1942,10 +2002,11 @@ class SummaryRow extends StatelessWidget {
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, this.api});
+  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
   final double total;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -1955,11 +2016,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String payment = 'UPI';
   int selectedAddress = 0;
   bool savingAddress = false;
+  bool placingOrder = false;
 
-  Future<void> _addAddress() async {
+  Future<void> _addAddress({CustomerAddress? initialAddress}) async {
     final result = await showDialog<CustomerAddress>(
       context: context,
-      builder: (_) => const _AddressFormDialog(),
+      builder: (_) => _AddressFormDialog(existing: initialAddress),
     );
     if (result == null || !mounted) return;
     setState(() => savingAddress = true);
@@ -1980,6 +2042,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
       setState(() => savingAddress = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save address. Please try again.')));
     }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => savingAddress = true);
+    final location = await detectCurrentLocationLabel();
+    if (!mounted) return;
+    setState(() => savingAddress = false);
+    if (location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not detect your location. Enter your address manually instead.')));
+      return;
+    }
+    final parts = location.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    await _addAddress(initialAddress: CustomerAddress(
+      label: 'Current location',
+      fullAddress: parts.isEmpty ? location : parts.first,
+      city: parts.length > 1 ? parts.last : location,
+      pincode: '',
+    ));
   }
 
   @override
@@ -2005,11 +2085,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
         ],
       const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: savingAddress ? null : _addAddress,
-        icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.add),
-        label: Text(savingAddress ? 'Saving…' : '+ Add New Address'),
-      ),
+      const Text('Choose how to add your delivery address', style: TextStyle(color: Colors.black54)),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: OutlinedButton.icon(
+          onPressed: savingAddress ? null : _useCurrentLocation,
+          icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location_rounded),
+          label: const Text('Use current location'),
+        )),
+        const SizedBox(width: 10),
+        Expanded(child: FilledButton.icon(
+          onPressed: savingAddress ? null : _addAddress,
+          icon: const Icon(Icons.edit_location_alt_outlined),
+          label: const Text('Enter manually'),
+        )),
+      ]),
       const SizedBox(height: 22),
       const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       Wrap(
@@ -2036,28 +2126,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
       SummaryRow(label: 'Total', value: widget.total, bold: true),
       const SizedBox(height: 18),
       FilledButton(
-        onPressed: widget.addresses.isEmpty ? null : () async {
+        onPressed: widget.addresses.isEmpty || placingOrder || savingAddress ? null : () async {
+          setState(() => placingOrder = true);
           try {
             final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
             if (!context.mounted) return;
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, api: widget.api)));
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, onContinueShopping: widget.onContinueShopping, api: widget.api)));
           } on CustomerApiException catch (e) {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
           } catch (_) {
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed, but payment setup could not be completed. Please check My Orders.')));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not confirm the order. Check My Orders before trying again.')));
+          } finally {
+            if (mounted) setState(() => placingOrder = false);
           }
         },
-        child: const Text('Place Order'),
+        child: Text(placingOrder ? 'Placing order…' : 'Place Order'),
       ),
     ]),
   );
 }
 
 class OrderSuccessPage extends StatefulWidget {
-  const OrderSuccessPage({super.key, required this.order, this.api});
+  const OrderSuccessPage({super.key, required this.order, required this.onContinueShopping, this.api});
   final OrderRecord order;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
   @override
@@ -2066,7 +2160,10 @@ class OrderSuccessPage extends StatefulWidget {
 
 class _OrderSuccessPageState extends State<OrderSuccessPage> {
   late OrderRecord order;
-  bool refreshing = false;
+
+  bool get paymentPending => order.payment == 'UPI' && order.status == 'PAYMENT_PENDING';
+  String get heading => paymentPending ? 'Order Created — Payment Pending'
+      : order.status == 'CANCELLED' ? 'Order Cancelled' : 'Order Placed Successfully!';
 
   @override
   void initState() {
@@ -2074,50 +2171,27 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
     order = widget.order;
   }
 
-  Future<void> _refreshPayment() async {
-    final api = widget.api;
-    final id = int.tryParse(order.id);
-    if (api == null || id == null || order.payment != 'UPI') return;
-    setState(() => refreshing = true);
-    try {
-      final updated = await api.getOrder(id);
-      if (mounted) setState(() => order = updated);
-    } on CustomerApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => refreshing = false);
-    }
-  }
-
-  Future<void> _pay(BuildContext context) async {
-    final url = order.paymentLinkUrl;
-    if (url == null) return;
-    final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the payment page.')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Center(child: Padding(
       padding: const EdgeInsets.all(28),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(order.status == 'CONFIRMED' ? Icons.check_circle : Icons.payment, size: 56, color: const Color(0xFF168447)),
+        Icon(paymentPending ? Icons.payment : order.status == 'CANCELLED' ? Icons.cancel_outlined : Icons.check_circle, size: 56, color: const Color(0xFF168447)),
         const SizedBox(height: 22),
-        Text(order.status == 'CONFIRMED' ? 'Order Placed Successfully!' : 'Order Created — Payment Pending', textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+        Text(heading, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
         const SizedBox(height: 10),
-        Text(order.status == 'CONFIRMED' ? 'Thank you for shopping with FRESHORA.' : 'Complete your UPI payment to confirm the order.', textAlign: TextAlign.center),
+        Text(paymentPending ? 'Complete your UPI payment to confirm the order.' : order.status == 'CANCELLED' ? 'This order has been cancelled.' : 'Thank you for shopping with FRESHORA.', textAlign: TextAlign.center),
         const SizedBox(height: 26),
         Card(child: ListTile(title: const Text('Order ID'), subtitle: Text('#'+order.id), trailing: Text('₹'+order.total.toStringAsFixed(0)))),
-        if (order.paymentLinkUrl != null) ...[
-          const SizedBox(height: 18),
-          FilledButton.icon(onPressed: () => _pay(context), icon: const Icon(Icons.open_in_new), label: const Text('Pay with UPI')),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(onPressed: refreshing ? null : _refreshPayment, icon: const Icon(Icons.refresh), label: Text(refreshing ? 'Refreshing…' : 'Refresh payment status')),
-        ],
+        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
         const SizedBox(height: 12),
-        OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
+        OutlinedButton(
+          onPressed: () {
+            widget.onContinueShopping();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Text('Continue Shopping'),
+        ),
       ]),
     )),
   );
@@ -2198,11 +2272,18 @@ class _OrdersPageState extends State<OrdersPage> {
   );
 }
 
-class OrderDetailsPage extends StatelessWidget {
+class OrderDetailsPage extends StatefulWidget {
   const OrderDetailsPage({super.key, required this.order, this.api});
 
   final OrderRecord order;
   final HttpCustomerRepository? api;
+
+  @override
+  State<OrderDetailsPage> createState() => _OrderDetailsPageState();
+}
+
+class _OrderDetailsPageState extends State<OrderDetailsPage> {
+  late OrderRecord order = widget.order;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -2239,14 +2320,67 @@ class OrderDetailsPage extends StatelessWidget {
           subtitle: Text(order.address),
         )),
         const SizedBox(height: 14),
+        OrderPaymentActions(order: order, api: widget.api, onUpdated: (updated) => setState(() => order = updated)),
         FilledButton.icon(
-          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: api))),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TrackingPage(order: order, api: widget.api))),
           icon: const Icon(Icons.local_shipping_outlined),
           label: const Text('Track Order'),
         ),
       ],
     ),
   );
+}
+
+class OrderPaymentActions extends StatefulWidget {
+  const OrderPaymentActions({super.key, required this.order, required this.api, required this.onUpdated});
+  final OrderRecord order;
+  final HttpCustomerRepository? api;
+  final ValueChanged<OrderRecord> onUpdated;
+
+  @override
+  State<OrderPaymentActions> createState() => _OrderPaymentActionsState();
+}
+
+class _OrderPaymentActionsState extends State<OrderPaymentActions> {
+  bool busy = false;
+  String? error;
+
+  Future<void> _update({bool pay = false}) async {
+    final api = widget.api;
+    final id = int.tryParse(widget.order.id);
+    if (api == null || id == null || busy) return;
+    setState(() { busy = true; error = null; });
+    try {
+      final latest = await api.getOrder(id);
+      if (!mounted) return;
+      widget.onUpdated(latest);
+      if (pay && latest.payment == 'UPI' && latest.status == 'PAYMENT_PENDING') {
+        final url = await api.createPaymentLink(id);
+        if (!mounted) return;
+        final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        if (!launched && mounted) setState(() => error = 'Could not open the payment page. Please try again.');
+      }
+    } on CustomerApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => error = 'Payment could not be opened. Your order is saved; please retry.');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.api == null || widget.order.payment != 'UPI' || widget.order.status != 'PAYMENT_PENDING') {
+      return const SizedBox.shrink();
+    }
+    return Column(children: [
+      const SizedBox(height: 12),
+      if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
+      FilledButton.icon(onPressed: busy ? null : () => _update(pay: true), icon: const Icon(Icons.open_in_new), label: Text(busy ? 'Please wait…' : 'Pay with UPI')),
+      OutlinedButton.icon(onPressed: busy ? null : _update, icon: const Icon(Icons.refresh), label: const Text('Refresh payment status')),
+    ]);
+  }
 }
 
 String _formatDate(DateTime value) {
@@ -2552,8 +2686,50 @@ class FavoritesPage extends StatelessWidget {
   );
 }
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.onSignOut});
+class ProfileInformationPage extends StatelessWidget {
+  const ProfileInformationPage({super.key, required this.title});
+  final String title;
+
+  Future<void> _contactSupport(BuildContext context) async {
+    try {
+      final opened = await launchUrl(Uri.parse('https://wa.me/918788543135'), mode: LaunchMode.externalApplication);
+      if (opened || !context.mounted) return;
+    } catch (_) {
+      if (!context.mounted) return;
+    }
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact support on WhatsApp at +91 87885 43135.')));
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: ListView(padding: const EdgeInsets.all(20), children: [
+      if (title == 'Payment Methods') ...[
+        const ListTile(leading: Icon(Icons.payment), title: Text('UPI'), subtitle: Text('Choose UPI at checkout and pay through the secure payment page.')),
+        const ListTile(leading: Icon(Icons.payments_outlined), title: Text('Cash on Delivery'), subtitle: Text('Pay in cash when your order arrives.')),
+        const Padding(padding: EdgeInsets.all(16), child: Text('To finish an unpaid UPI order, open My Orders, select the order, and tap Pay with UPI.')),
+      ] else if (title == 'Help & Support') ...[
+        const Text('Need help with an order?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        const Text('Contact our team on WhatsApp at +91 87885 43135. Include your Order ID from My Orders so we can help.'),
+        const SizedBox(height: 16),
+        FilledButton.icon(onPressed: () => _contactSupport(context), icon: const Icon(Icons.chat_outlined), label: const Text('Contact on WhatsApp')),
+      ] else ...[
+        const Center(child: FreshoraLogo(size: 80)),
+        const SizedBox(height: 16),
+        const Text('FRESHORA', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 12),
+        const Text('Fresh fruits and vegetables for Talegaon. Browse today’s produce, place an order, and follow your delivery from My Orders.'),
+      ],
+    ]),
+  );
+}
+
+enum _ProfilePhotoAction { camera, gallery, remove }
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.orders = const [], this.onSignOut});
+  final List<OrderRecord> orders;
   final CustomerSession session;
   final List<CustomerAddress> addresses;
   final VoidCallback onManageAddresses;
@@ -2561,12 +2737,114 @@ class ProfilePage extends StatelessWidget {
   final VoidCallback onViewOrders;
   final VoidCallback? onSignOut;
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String? _profileImageBase64;
+
+  String get _profilePhotoKey => 'freshora_profile_photo_${widget.session.phone}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilePhoto();
+  }
+
+  Future<void> _loadProfilePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_profilePhotoKey);
+    if (mounted && saved != null && saved.isNotEmpty) {
+      setState(() => _profileImageBase64 = saved);
+    }
+  }
+
+  ImageProvider<Object>? get _profileImage {
+    final encoded = _profileImageBase64;
+    if (encoded == null || encoded.isEmpty) return null;
+    try {
+      return MemoryImage(base64Decode(encoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _showPhotoOptions() async {
+    final action = await showModalBottomSheet<_ProfilePhotoAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, _ProfilePhotoAction.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(context, _ProfilePhotoAction.camera),
+            ),
+            if (_profileImageBase64 != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(context, _ProfilePhotoAction.remove),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == _ProfilePhotoAction.remove) {
+      await _removeProfilePhoto();
+      return;
+    }
+    await _pickProfilePhoto(action == _ProfilePhotoAction.camera ? ImageSource.camera : ImageSource.gallery);
+  }
+
+  Future<void> _pickProfilePhoto(ImageSource source) async {
+    try {
+      final picked = await ImagePicker().pickImage(source: source, maxWidth: 720, imageQuality: 80);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.isEmpty) return;
+      final encoded = base64Encode(bytes);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_profilePhotoKey, encoded);
+      if (mounted) setState(() => _profileImageBase64 = encoded);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save that profile photo.')));
+      }
+    }
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profilePhotoKey);
+    if (mounted) setState(() => _profileImageBase64 = null);
+  }
+
+  void _openMenu(BuildContext context, String feature) {
+    if (feature == 'My Orders') {
+      widget.onViewOrders();
+      return;
+    }
+    if (feature == 'Notifications') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders)));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileInformationPage(title: feature)));
   }
 
   String get _referralCode {
-    final digits = session.phone.replaceAll(RegExp(r'\D'), '');
+    final digits = widget.session.phone.replaceAll(RegExp(r'\D'), '');
     final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits.padLeft(4, '0');
     return 'FRESHORA$suffix';
   }
@@ -2592,14 +2870,69 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(20),
     children: [
-      const Text('My Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 20),
-      const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
+      Card(
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [Color(0xFF0B5B2C), Color(0xFF168B45)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          ),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 42,
+                    backgroundColor: Colors.white.withValues(alpha: .2),
+                    backgroundImage: _profileImage,
+                    child: _profileImage == null ? const Icon(Icons.person, size: 42, color: Colors.white) : null,
+                  ),
+                  Positioned(
+                    right: -3,
+                    bottom: -3,
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: _showPhotoOptions,
+                        customBorder: const CircleBorder(),
+                        child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.camera_alt_outlined, size: 18, color: Color(0xFF0B5B2C))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [const FreshoraLogo(size: 28), const SizedBox(width: 8), Text('FRESHORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2))]),
+                    const SizedBox(height: 12),
+                    Text(widget.session.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 3),
+                    Text(widget.session.phone, style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 4),
+                    const Text('Customer profile', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.account_circle_outlined, color: Color(0xFF0B5B2C)),
+          title: const Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(_profileImage == null ? 'Add a photo to personalize your account' : 'Your photo is saved on this device'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showPhotoOptions,
+        ),
+      ),
       const SizedBox(height: 10),
-      Center(child: Text(session.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
-      const SizedBox(height: 4),
-      Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
-      const SizedBox(height: 22),
       Card(
         color: const Color(0xFFEAF6EA),
         child: Padding(
@@ -2644,26 +2977,26 @@ class ProfilePage extends StatelessWidget {
           title: const Text('My Favorites'),
           subtitle: const Text('View your saved products'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: onManageFavorites,
+          onTap: widget.onManageFavorites,
         ),
       ),
       Card(
         child: ListTile(
           leading: const Icon(Icons.location_on_outlined),
           title: const Text('My Addresses'),
-          subtitle: Text(addresses.isEmpty ? 'Add a delivery address' : '${addresses.length} saved address${addresses.length == 1 ? '' : 'es'}'),
+          subtitle: Text(widget.addresses.isEmpty ? 'Add a delivery address' : '${widget.addresses.length} saved address${widget.addresses.length == 1 ? '' : 'es'}'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: onManageAddresses,
+          onTap: widget.onManageAddresses,
         ),
       ),
       ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About FRESHORA']
         .map((x) => Card(child: ListTile(
           title: Text(x),
           trailing: const Icon(Icons.chevron_right),
-          onTap: x == 'My Orders' ? onViewOrders : () => _showComingSoon(context, x),
+          onTap: () => _openMenu(context, x),
         ))),
       const SizedBox(height: 10),
-      OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
+      OutlinedButton.icon(onPressed: widget.onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
     ],
   );
 }
