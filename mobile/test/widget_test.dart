@@ -118,6 +118,31 @@ void main() {
     expect(find.text('₹30/1 kg'), findsWidgets);
   });
 
+  testWidgets('Home search filters products and opens notifications', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppShell(
+          repository: FakeProductRepository(),
+          session: const CustomerSession(
+            phone: '9876543210',
+            name: 'Talegaon Customer',
+            token: 'test-token',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'tomato');
+    await tester.pump();
+    expect(find.text('Tomato'), findsWidgets);
+    expect(find.text('Potato'), findsNothing);
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('No notifications yet'), findsOneWidget);
+  });
+
   testWidgets('customer cart persists across app sessions', (tester) async {
     SharedPreferences.setMockInitialValues({});
 

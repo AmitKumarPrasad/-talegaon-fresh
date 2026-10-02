@@ -1050,7 +1050,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
+      HomePage(products: products, orders: orders, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, onContinueShopping: () => setState(() => tab = 0), api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
@@ -1098,9 +1098,10 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.products, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key, required this.products, required this.orders, required this.loading, this.error, required this.onRetry, required this.onAdd, required this.onOpenProduct, required this.favorites, required this.onToggleFavorite, this.location, required this.quantityFor, required this.onIncrementProduct, required this.onDecrementProduct});
   final List<Product> products;
+  final List<OrderRecord> orders;
   final bool loading;
   final String? error;
   final VoidCallback onRetry;
@@ -1114,25 +1115,54 @@ class HomePage extends StatelessWidget {
   final ValueChanged<Product> onDecrementProduct;
 
   @override
-  Widget build(BuildContext context) => CustomScrollView(
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchController.text.trim().toLowerCase();
+    final visibleProducts = widget.products.where((product) =>
+        query.isEmpty ||
+        product.name.toLowerCase().contains(query) ||
+        product.unit.toLowerCase().contains(query)).toList();
+    return CustomScrollView(
     slivers: [
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
         sliver: SliverToBoxAdapter(
           child: Row(children: [
-            const FreshoraLogo(size: 46),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset('assets/images/app_icon.png', width: 46, height: 46),
+            ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('FRESHORA', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
               Row(children: [
-                if (location != null) ...[
+                if (widget.location != null) ...[
                   const Icon(Icons.location_on, size: 14, color: Colors.black54),
                   const SizedBox(width: 2),
                 ],
-                Flexible(child: Text(location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
+                Flexible(child: Text(widget.location ?? 'Freshness from farm to home', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54))),
               ]),
             ])),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage(orders: widget.orders))),
+              icon: Badge(
+                isLabelVisible: widget.orders.any((order) => order.status != 'DELIVERED'),
+                child: const Icon(Icons.notifications_none),
+              ),
+            ),
           ]),
         ),
       ),
@@ -1140,9 +1170,21 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
         sliver: SliverToBoxAdapter(
           child: TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
               hintText: 'Search fruits, vegetables...',
               prefixIcon: const Icon(Icons.search),
+              suffixIcon: query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close),
+                    ),
               filled: true, fillColor: Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             ),
@@ -1153,14 +1195,26 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         sliver: SliverToBoxAdapter(
           child: Container(
-            height: 165, padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), gradient: const LinearGradient(colors: [Color(0xFF0D7A3D), Color(0xFF34A853)])),
-            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Fresh From\nLocal Farmers', style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)),
-              SizedBox(height: 8),
-              Text('Healthy food • Happier families', style: TextStyle(color: Colors.white70)),
-              Spacer(),
-              Text('Fresh • Local • Delivered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            height: 165,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(fit: StackFit.expand, children: [
+              Image.asset('assets/images/products/leafy_greens.png', fit: BoxFit.cover),
+              const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(
+                colors: [Color(0xD90B5B2C), Color(0x99168B45)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ))),
+              const Padding(
+                padding: EdgeInsets.all(22),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Fresh From\nLocal Farmers', style: TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 8),
+                  Text('Healthy food • Happier families', style: TextStyle(color: Colors.white70)),
+                  Spacer(),
+                  Text('Fresh • Local • Delivered', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ]),
+              ),
             ]),
           ),
         ),
@@ -1169,21 +1223,53 @@ class HomePage extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
         sliver: SliverToBoxAdapter(child: Text("Today's Fresh Products", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
       ),
-      if (loading)
+      if (widget.loading)
         const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())))
-      else if (error != null)
-        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: error!, onRetry: onRetry)))
-      else if (products.isEmpty)
-        const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No products are available today.')))),
+      else if (widget.error != null)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: ErrorCard(message: widget.error!, onRetry: widget.onRetry)))
+      else if (visibleProducts.isEmpty)
+        SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(28), child: Center(child: Text(query.isEmpty ? 'No products are available today.' : 'No products match "$query".')))),
       SliverPadding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: .82),
-          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: products[i], onAdd: onAdd, onOpen: onOpenProduct, isFavorite: favorites.contains(products[i].name), onToggleFavorite: onToggleFavorite, quantity: quantityFor(products[i]), onIncrement: () => onIncrementProduct(products[i]), onDecrement: () => onDecrementProduct(products[i])), childCount: products.length > 4 ? 4 : products.length),
+          delegate: SliverChildBuilderDelegate((context, i) => ProductCard(product: visibleProducts[i], onAdd: widget.onAdd, onOpen: widget.onOpenProduct, isFavorite: widget.favorites.contains(visibleProducts[i].name), onToggleFavorite: widget.onToggleFavorite, quantity: widget.quantityFor(visibleProducts[i]), onIncrement: () => widget.onIncrementProduct(visibleProducts[i]), onDecrement: () => widget.onDecrementProduct(visibleProducts[i])), childCount: visibleProducts.length > 4 ? 4 : visibleProducts.length),
         ),
       ),
     ],
   );
+  }
+}
+
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key, required this.orders});
+
+  final List<OrderRecord> orders;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Notifications')),
+        body: orders.isEmpty
+            ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.notifications_none_rounded, size: 64, color: Colors.black26),
+                SizedBox(height: 12),
+                Text('No notifications yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                Text('Order and delivery updates will appear here.'),
+              ]))
+            : ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: orders.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final order = orders[index];
+                  return Card(child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.shopping_bag_outlined)),
+                    title: Text('Order #${order.id} is ${order.status.replaceAll('_', ' ')}'),
+                    subtitle: Text('₹${order.total.toStringAsFixed(0)} • ${_formatDate(order.createdAt)}'),
+                  ));
+                },
+              ),
+      );
 }
 
 class ProductsPage extends StatefulWidget {
