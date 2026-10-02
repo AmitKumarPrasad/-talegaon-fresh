@@ -125,7 +125,8 @@ void main() {
     expect(find.text('FRESHORA'), findsOneWidget);
     expect(find.text("Today's Products"), findsOneWidget);
     expect(find.text('Tomato'), findsWidgets);
-    expect(find.text('₹30/1 kg'), findsWidgets);
+    expect(find.text('₹30'), findsWidgets);
+    expect(find.text('per 1 kg'), findsWidgets);
   });
 
   testWidgets('Home search filters products and opens notifications', (tester) async {
