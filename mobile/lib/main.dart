@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -231,15 +232,11 @@ class _LoginPageState extends State<LoginPage> {
                           icon: const Icon(Icons.arrow_back_rounded),
                         ),
                       ),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(22)),
-                      child: Icon(Icons.eco_rounded, size: 42, color: cs.onPrimaryContainer),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('FRESHORA', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    const Center(child: FreshoraLogo(size: 82)),
+                    const SizedBox(height: 16),
+                    Text('FRESHORA', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
-                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
+                    Text(registerMode ? 'Create your secure customer account.' : 'Welcome back. Sign in securely.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 22),
                     SegmentedButton<bool>(
                       segments: const [
@@ -705,33 +702,6 @@ class _AppShellState extends State<AppShell> {
     _loadAddresses();
     _loadFavorites();
     _clearRemoteLocalState();
-    _detectLocation();
-  }
-
-  Future<void> _detectLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    const rationaleShownKey = 'location_rationale_shown';
-    if (prefs.getBool(rationaleShownKey) != true) {
-      await prefs.setBool(rationaleShownKey, true);
-      if (!mounted) return;
-      final allow = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Use your location?'),
-          content: const Text(
-            'FRESHORA would like to use your approximate location to show your delivery area in the app. '
-            'We never share this with anyone else.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not now')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Allow')),
-          ],
-        ),
-      );
-      if (allow != true) return;
-    }
-    final label = await detectCurrentLocationLabel();
-    if (mounted && label != null) setState(() => detectedLocation = label);
   }
 
   String get _cartStorageKey => 'talegaon_fresh_cart_${widget.session.phone}';
@@ -1082,7 +1052,7 @@ class _AppShellState extends State<AppShell> {
     final pages = [
       HomePage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, location: detectedLocation, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
       ProductsPage(products: products, loading: loading, error: error, onRetry: _loadProducts, onAdd: add, onOpenProduct: _openProduct, favorites: favorites, onToggleFavorite: toggleFavorite, quantityFor: quantityFor, onIncrementProduct: incrementProduct, onDecrementProduct: decrementProduct),
-      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, api: _useRemoteCustomerApi ? customerApi : null),
+      CartPage(cart: cart, onIncrement: _incrementCartItem, onDecrement: _decrementCartItem, onRemove: _removeCartItem, syncError: cartSyncError, onRetrySync: _persistCart, addresses: addresses, onOrderPlaced: _completeOrder, onContinueShopping: () => setState(() => tab = 0), api: _useRemoteCustomerApi ? customerApi : null),
       OrdersPage(orders: orders, api: _useRemoteCustomerApi ? customerApi : null),
       AiAssistantPage(token: widget.session.token ?? ''),
       ProfilePage(
@@ -1802,7 +1772,7 @@ class _PromoOffer {
 }
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, this.api});
+  const CartPage({super.key, required this.cart, required this.onIncrement, required this.onDecrement, required this.onRemove, this.syncError, this.onRetrySync, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
   final List<CartItem> cart;
   final ValueChanged<CartItem> onIncrement;
   final ValueChanged<CartItem> onDecrement;
@@ -1811,6 +1781,7 @@ class CartPage extends StatefulWidget {
   final Future<void> Function()? onRetrySync;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
   @override
@@ -1920,7 +1891,7 @@ class _CartPageState extends State<CartPage> {
         const Divider(height: 28),
         SummaryRow(label: 'Total', value: total, bold: true),
         const SizedBox(height: 18),
-        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, api: widget.api))), child: const Text('Proceed to Checkout')),
+        FilledButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CheckoutPage(total: total, addresses: widget.addresses, onOrderPlaced: widget.onOrderPlaced, onContinueShopping: widget.onContinueShopping, api: widget.api))), child: const Text('Proceed to Checkout')),
       ],
     );
   }
@@ -1942,10 +1913,11 @@ class SummaryRow extends StatelessWidget {
 }
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, this.api});
+  const CheckoutPage({super.key, required this.total, required this.addresses, required this.onOrderPlaced, required this.onContinueShopping, this.api});
   final double total;
   final List<CustomerAddress> addresses;
   final Future<OrderRecord> Function(String payment, CustomerAddress address, double total) onOrderPlaced;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -1956,10 +1928,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
   int selectedAddress = 0;
   bool savingAddress = false;
 
-  Future<void> _addAddress() async {
+  Future<void> _addAddress({CustomerAddress? initialAddress}) async {
     final result = await showDialog<CustomerAddress>(
       context: context,
-      builder: (_) => const _AddressFormDialog(),
+      builder: (_) => _AddressFormDialog(existing: initialAddress),
     );
     if (result == null || !mounted) return;
     setState(() => savingAddress = true);
@@ -1980,6 +1952,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
       setState(() => savingAddress = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save address. Please try again.')));
     }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => savingAddress = true);
+    final location = await detectCurrentLocationLabel();
+    if (!mounted) return;
+    setState(() => savingAddress = false);
+    if (location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not detect your location. Enter your address manually instead.')));
+      return;
+    }
+    final parts = location.split(',').map((part) => part.trim()).where((part) => part.isNotEmpty).toList();
+    await _addAddress(initialAddress: CustomerAddress(
+      label: 'Current location',
+      fullAddress: parts.isEmpty ? location : parts.first,
+      city: parts.length > 1 ? parts.last : location,
+      pincode: '',
+    ));
   }
 
   @override
@@ -2005,11 +1995,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
         ],
       const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: savingAddress ? null : _addAddress,
-        icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.add),
-        label: Text(savingAddress ? 'Saving…' : '+ Add New Address'),
-      ),
+      const Text('Choose how to add your delivery address', style: TextStyle(color: Colors.black54)),
+      const SizedBox(height: 8),
+      Row(children: [
+        Expanded(child: OutlinedButton.icon(
+          onPressed: savingAddress ? null : _useCurrentLocation,
+          icon: savingAddress ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location_rounded),
+          label: const Text('Use current location'),
+        )),
+        const SizedBox(width: 10),
+        Expanded(child: FilledButton.icon(
+          onPressed: savingAddress ? null : _addAddress,
+          icon: const Icon(Icons.edit_location_alt_outlined),
+          label: const Text('Enter manually'),
+        )),
+      ]),
       const SizedBox(height: 22),
       const Text('Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       Wrap(
@@ -2040,7 +2040,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           try {
             final order = await widget.onOrderPlaced(payment, widget.addresses[selectedAddress.clamp(0, widget.addresses.length - 1)], widget.total);
             if (!context.mounted) return;
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, api: widget.api)));
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => OrderSuccessPage(order: order, onContinueShopping: widget.onContinueShopping, api: widget.api)));
           } on CustomerApiException catch (e) {
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -2056,8 +2056,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
 }
 
 class OrderSuccessPage extends StatefulWidget {
-  const OrderSuccessPage({super.key, required this.order, this.api});
+  const OrderSuccessPage({super.key, required this.order, required this.onContinueShopping, this.api});
   final OrderRecord order;
+  final VoidCallback onContinueShopping;
   final HttpCustomerRepository? api;
 
   @override
@@ -2117,7 +2118,13 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
           OutlinedButton.icon(onPressed: refreshing ? null : _refreshPayment, icon: const Icon(Icons.refresh), label: Text(refreshing ? 'Refreshing…' : 'Refresh payment status')),
         ],
         const SizedBox(height: 12),
-        OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Continue Shopping')),
+        OutlinedButton(
+          onPressed: () {
+            widget.onContinueShopping();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          child: const Text('Continue Shopping'),
+        ),
       ]),
     )),
   );
@@ -2552,7 +2559,9 @@ class FavoritesPage extends StatelessWidget {
   );
 }
 
-class ProfilePage extends StatelessWidget {
+enum _ProfilePhotoAction { camera, gallery, remove }
+
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, required this.session, required this.addresses, required this.onManageAddresses, required this.onManageFavorites, required this.onViewOrders, this.onSignOut});
   final CustomerSession session;
   final List<CustomerAddress> addresses;
@@ -2561,12 +2570,106 @@ class ProfilePage extends StatelessWidget {
   final VoidCallback onViewOrders;
   final VoidCallback? onSignOut;
 
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String? _profileImageBase64;
+
+  String get _profilePhotoKey => 'freshora_profile_photo_${widget.session.phone}';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilePhoto();
+  }
+
+  Future<void> _loadProfilePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_profilePhotoKey);
+    if (mounted && saved != null && saved.isNotEmpty) {
+      setState(() => _profileImageBase64 = saved);
+    }
+  }
+
+  ImageProvider<Object>? get _profileImage {
+    final encoded = _profileImageBase64;
+    if (encoded == null || encoded.isEmpty) return null;
+    try {
+      return MemoryImage(base64Decode(encoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _showPhotoOptions() async {
+    final action = await showModalBottomSheet<_ProfilePhotoAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, _ProfilePhotoAction.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(context, _ProfilePhotoAction.camera),
+            ),
+            if (_profileImageBase64 != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(context, _ProfilePhotoAction.remove),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == _ProfilePhotoAction.remove) {
+      await _removeProfilePhoto();
+      return;
+    }
+    await _pickProfilePhoto(action == _ProfilePhotoAction.camera ? ImageSource.camera : ImageSource.gallery);
+  }
+
+  Future<void> _pickProfilePhoto(ImageSource source) async {
+    try {
+      final picked = await ImagePicker().pickImage(source: source, maxWidth: 720, imageQuality: 80);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.isEmpty) return;
+      final encoded = base64Encode(bytes);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_profilePhotoKey, encoded);
+      if (mounted) setState(() => _profileImageBase64 = encoded);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save that profile photo.')));
+      }
+    }
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_profilePhotoKey);
+    if (mounted) setState(() => _profileImageBase64 = null);
+  }
+
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature is coming soon.')));
   }
 
   String get _referralCode {
-    final digits = session.phone.replaceAll(RegExp(r'\D'), '');
+    final digits = widget.session.phone.replaceAll(RegExp(r'\D'), '');
     final suffix = digits.length >= 4 ? digits.substring(digits.length - 4) : digits.padLeft(4, '0');
     return 'FRESHORA$suffix';
   }
@@ -2592,14 +2695,69 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(20),
     children: [
-      const Text('My Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 20),
-      const CircleAvatar(radius: 42, child: Icon(Icons.person, size: 42)),
+      Card(
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [Color(0xFF0B5B2C), Color(0xFF168B45)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          ),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 42,
+                    backgroundColor: Colors.white.withValues(alpha: .2),
+                    backgroundImage: _profileImage,
+                    child: _profileImage == null ? const Icon(Icons.person, size: 42, color: Colors.white) : null,
+                  ),
+                  Positioned(
+                    right: -3,
+                    bottom: -3,
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: _showPhotoOptions,
+                        customBorder: const CircleBorder(),
+                        child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.camera_alt_outlined, size: 18, color: Color(0xFF0B5B2C))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [const FreshoraLogo(size: 28), const SizedBox(width: 8), Text('FRESHORA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.2))]),
+                    const SizedBox(height: 12),
+                    Text(widget.session.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 3),
+                    Text(widget.session.phone, style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 4),
+                    const Text('Customer profile', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.account_circle_outlined, color: Color(0xFF0B5B2C)),
+          title: const Text('Profile photo', style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(_profileImage == null ? 'Add a photo to personalize your account' : 'Your photo is saved on this device'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showPhotoOptions,
+        ),
+      ),
       const SizedBox(height: 10),
-      Center(child: Text(session.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
-      const SizedBox(height: 4),
-      Center(child: Text(session.phone, style: const TextStyle(color: Colors.black54))),
-      const SizedBox(height: 22),
       Card(
         color: const Color(0xFFEAF6EA),
         child: Padding(
@@ -2644,26 +2802,26 @@ class ProfilePage extends StatelessWidget {
           title: const Text('My Favorites'),
           subtitle: const Text('View your saved products'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: onManageFavorites,
+          onTap: widget.onManageFavorites,
         ),
       ),
       Card(
         child: ListTile(
           leading: const Icon(Icons.location_on_outlined),
           title: const Text('My Addresses'),
-          subtitle: Text(addresses.isEmpty ? 'Add a delivery address' : '${addresses.length} saved address${addresses.length == 1 ? '' : 'es'}'),
+          subtitle: Text(widget.addresses.isEmpty ? 'Add a delivery address' : '${widget.addresses.length} saved address${widget.addresses.length == 1 ? '' : 'es'}'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: onManageAddresses,
+          onTap: widget.onManageAddresses,
         ),
       ),
       ...['My Orders', 'Payment Methods', 'Notifications', 'Help & Support', 'About FRESHORA']
         .map((x) => Card(child: ListTile(
           title: Text(x),
           trailing: const Icon(Icons.chevron_right),
-          onTap: x == 'My Orders' ? onViewOrders : () => _showComingSoon(context, x),
+          onTap: x == 'My Orders' ? widget.onViewOrders : () => _showComingSoon(context, x),
         ))),
       const SizedBox(height: 10),
-      OutlinedButton.icon(onPressed: onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
+      OutlinedButton.icon(onPressed: widget.onSignOut, icon: const Icon(Icons.logout), label: const Text('Sign out')),
     ],
   );
 }
