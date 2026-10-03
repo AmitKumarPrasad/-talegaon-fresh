@@ -1321,6 +1321,28 @@ class _AppShellState extends State<AppShell> {
     widget.onSignOut?.call();
   }
 
+  Future<void> _deleteAccount() async {
+    if (_useRemoteCustomerApi) {
+      await customerApi.deleteAccount();
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_cartStorageKey),
+      prefs.remove(_ordersStorageKey),
+      prefs.remove(_addressesStorageKey),
+      prefs.remove(_favoritesStorageKey),
+      prefs.remove('freshora_profile_photo_${widget.session.phone}'),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      cart.clear();
+      addresses.clear();
+      orders.clear();
+      favorites.clear();
+    });
+    widget.onSignOut?.call();
+  }
+
   Future<void> _loadProducts() async {
     setState(() {
       loading = true;
@@ -1522,6 +1544,7 @@ class _AppShellState extends State<AppShell> {
                     onDecrementProduct: decrementProduct))),
         onViewOrders: () => setState(() => tab = 3),
         onSignOut: _signOut,
+        onDeleteAccount: _deleteAccount,
       ),
     ];
     return Scaffold(
@@ -3936,7 +3959,8 @@ class ProfilePage extends StatefulWidget {
       required this.onManageFavorites,
       required this.onViewOrders,
       this.orders = const [],
-      this.onSignOut});
+      this.onSignOut,
+      this.onDeleteAccount});
   final List<OrderRecord> orders;
   final CustomerSession session;
   final List<CustomerAddress> addresses;
@@ -3944,6 +3968,7 @@ class ProfilePage extends StatefulWidget {
   final VoidCallback onManageFavorites;
   final VoidCallback onViewOrders;
   final VoidCallback? onSignOut;
+  final Future<void> Function()? onDeleteAccount;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -4046,6 +4071,39 @@ class _ProfilePageState extends State<ProfilePage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_profilePhotoKey);
     if (mounted) setState(() => _profileImageBase64 = null);
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'Your account and personal data will be deleted. Retained order records may be anonymized for legal and accounting purposes. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || widget.onDeleteAccount == null) return;
+    try {
+      await widget.onDeleteAccount!();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account deletion failed. Please try again.')),
+        );
+      }
+    }
   }
 
   void _openMenu(BuildContext context, String feature) {
@@ -4276,6 +4334,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 onTap: () => _openMenu(context, x),
               ))),
           const SizedBox(height: 10),
+          OutlinedButton.icon(
+              onPressed: widget.onDeleteAccount == null ? null : _confirmDeleteAccount,
+              icon: const Icon(Icons.delete_forever_outlined, color: Colors.red),
+              label: const Text('Delete account', style: TextStyle(color: Colors.red))), 
+          const SizedBox(height: 8),
           OutlinedButton.icon(
               onPressed: widget.onSignOut,
               icon: const Icon(Icons.logout),
